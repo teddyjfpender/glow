@@ -1,0 +1,44 @@
+# Rust
+/target/
+Cargo.lock
+*.rs.bk
+
+# Node/Bun
+node_modules/
+.bun/
+bun.lockb
+
+# SvelteKit
+.svelte-kit/
+build/
+
+# Tauri
+/apps/web/src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Turbo
+.turbo/

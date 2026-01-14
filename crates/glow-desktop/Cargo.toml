@@ -1,0 +1,38 @@
+[package]
+name = "glow-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Tauri desktop application for Glow"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+glow-core = { path = "../glow-core" }
+
+# Tauri
+tauri = { version = "2.2", features = [] }
+tauri-plugin-shell = "2.2"
+
+# Async
+tokio.workspace = true
+
+# Database
+rusqlite.workspace = true
+tokio-rusqlite.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true

@@ -1,0 +1,43 @@
+# Lefthook configuration for Glow monorepo
+# Fast, polyglot pre-commit hooks
+
+assert_lefthook_installed: true
+
+pre-commit:
+  parallel: true
+  commands:
+    rust-fmt:
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+
+    rust-clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    svelte-check:
+      glob: "*.{ts,js,svelte}"
+      run: bunx turbo check --filter=@glow/web
+
+    lint:
+      glob: "*.{ts,js,svelte}"
+      run: bunx turbo lint --filter=@glow/web
+
+    format:
+      glob: "*.{ts,js,svelte,json,yaml,yml,md,css}"
+      run: bunx prettier --check .
+
+pre-push:
+  parallel: true
+  commands:
+    rust-test:
+      glob: "*.rs"
+      run: cargo test --all-features --workspace
+
+    frontend-test:
+      glob: "*.{ts,js,svelte}"
+      run: bunx turbo test
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}

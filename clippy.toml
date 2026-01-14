@@ -1,0 +1,20 @@
+# Cognitive complexity threshold (lower = stricter)
+cognitive-complexity-threshold = 15
+
+# Maximum allowed nesting
+excessive-nesting-threshold = 4
+
+# Disallow common placeholder names
+disallowed-names = ["foo", "bar", "baz", "temp", "tmp"]
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Maximum single function length (lines of code)
+too-many-lines-threshold = 100
+
+# Limit function parameters
+too-many-arguments-threshold = 5
+
+# Single char binding names threshold
+single-char-binding-names-threshold = 4

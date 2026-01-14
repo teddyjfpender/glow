@@ -1,0 +1,27 @@
+[package]
+name = "glow-app"
+version = "0.1.0"
+edition = "2024"
+description = "Glow - Next generation docs and notes"
+authors = ["Glow Team"]
+license = "MIT"
+
+[lib]
+name = "glow_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+glow-core = { path = "../../../crates/glow-core" }
+glow-desktop = { path = "../../../crates/glow-desktop" }
+
+tauri = { version = "2.2", features = [] }
+tauri-plugin-shell = "2.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

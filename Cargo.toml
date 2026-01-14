@@ -1,0 +1,105 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Glow Team"]
+repository = "https://github.com/glow-app/glow"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.43", features = ["full"] }
+
+# Web framework
+axum = { version = "0.8", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "compression-br", "trace"] }
+
+# CRDT for real-time collaboration
+yrs = "0.21"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "sqlite", "json"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+tokio-rusqlite = "0.6"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging/Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utils
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# WASM
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+
+# Testing
+proptest = "1.5"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+rust_2018_idioms = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+# Correctness
+all = { level = "warn", priority = -1 }
+
+# Pedantic (stricter)
+pedantic = { level = "warn", priority = -1 }
+
+# Nursery (experimental but useful)
+nursery = { level = "warn", priority = -1 }
+
+# Specific high-value lints
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+
+# Performance
+inefficient_to_string = "warn"
+large_futures = "warn"
+
+# Security
+hardcoded_credentials = "deny"
+
+# Allow some pedantic lints that are too noisy
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true
+panic = "abort"
+
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"
+lto = true

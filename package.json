@@ -1,0 +1,33 @@
+{
+  "name": "glow",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint && cargo clippy --all-targets --all-features -- -D warnings",
+    "lint:fix": "turbo lint:fix && cargo fmt --all",
+    "typecheck": "turbo typecheck",
+    "check": "turbo check",
+    "test": "turbo test && cargo test --all-features --workspace",
+    "test:e2e": "turbo test:e2e",
+    "format": "bunx prettier --write . && cargo fmt --all",
+    "format:check": "bunx prettier --check . && cargo fmt --all -- --check",
+    "clean": "turbo clean && cargo clean",
+    "prepare": "bunx lefthook install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "lefthook": "^1.10.10",
+    "prettier": "^3.4.2",
+    "prettier-plugin-svelte": "^3.3.3",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "trustedDependencies": ["lefthook"]
+}

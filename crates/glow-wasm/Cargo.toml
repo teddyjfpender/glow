@@ -1,0 +1,27 @@
+[package]
+name = "glow-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "WebAssembly bindings for Glow - browser-side CRDT operations"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+glow-core = { path = "../glow-core", features = ["wasm"] }
+
+# WASM
+wasm-bindgen.workspace = true
+serde-wasm-bindgen.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

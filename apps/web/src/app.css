@@ -1,0 +1,244 @@
+@import 'tailwindcss';
+
+/* ============================================
+   GLOW DESIGN TOKENS
+   Dark mode first, WCAG 2.1 AA compliant
+   ============================================ */
+
+:root {
+  /* Background colors */
+  --glow-bg-base: #0d0d0d;
+  --glow-bg-surface: #141414;
+  --glow-bg-elevated: #1a1a1a;
+  --glow-bg-editor: #111111;
+
+  /* Border colors */
+  --glow-border-subtle: #262626;
+  --glow-border-default: #333333;
+
+  /* Text colors - contrast ratios on #0d0d0d */
+  --glow-text-primary: #ebebeb; /* 15.8:1 */
+  --glow-text-secondary: #a3a3a3; /* 7.2:1 */
+  --glow-text-tertiary: #737373; /* 4.5:1 */
+
+  /* Accent colors - desaturated for dark mode */
+  --glow-accent-primary: #6366f1;
+  --glow-accent-primary-hover: #818cf8;
+  --glow-accent-success: #34d399;
+  --glow-accent-warning: #fbbf24;
+  --glow-accent-error: #f87171;
+
+  /* Selection & highlights */
+  --glow-selection-bg: rgb(99 102 241 / 0.3);
+  --glow-highlight-yellow: rgb(251 191 36 / 0.3);
+  --glow-highlight-search: rgb(52 211 153 / 0.3);
+
+  /* Typography */
+  --glow-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --glow-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Spacing */
+  --glow-header-height: 48px;
+  --glow-sidebar-width: 240px;
+  --glow-content-max-width: 720px;
+
+  /* Transitions */
+  --glow-transition-fast: 100ms ease;
+  --glow-transition-normal: 150ms ease;
+  --glow-transition-slow: 200ms ease-out;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--glow-font-sans);
+  background-color: var(--glow-bg-base);
+  color: var(--glow-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--glow-selection-bg);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--glow-accent-primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--glow-border-default);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--glow-text-tertiary);
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.5rem;
+  letter-spacing: -0.015em;
+}
+
+h3 {
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+code {
+  font-family: var(--glow-font-mono);
+  font-size: 0.9em;
+  background-color: var(--glow-bg-elevated);
+  padding: 0.125em 0.375em;
+  border-radius: 4px;
+}
+
+pre {
+  font-family: var(--glow-font-mono);
+  background-color: var(--glow-bg-surface);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ============================================
+   EDITOR STYLES
+   ============================================ */
+
+.ProseMirror {
+  outline: none;
+  min-height: 100%;
+}
+
+.ProseMirror p {
+  margin-bottom: 1em;
+}
+
+.ProseMirror h1 {
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror h2 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror h3 {
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.25em;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid var(--glow-border-default);
+  margin: 1em 0;
+  padding-left: 1em;
+  color: var(--glow-text-secondary);
+}
+
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--glow-border-subtle);
+  margin: 2em 0;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--glow-text-tertiary);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.glow-scrollable {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.glow-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
