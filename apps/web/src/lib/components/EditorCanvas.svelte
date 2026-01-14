@@ -128,11 +128,7 @@
   </div>
 
   {#if showToolbar && editor !== null}
-    <FloatingToolbar
-      position={toolbarPosition}
-      onCommand={handleCommand}
-      {isActive}
-    />
+    <FloatingToolbar position={toolbarPosition} onCommand={handleCommand} {isActive} />
   {/if}
 
   <StatusBar wordCount={documentState.wordCount} />

@@ -5,7 +5,7 @@
     isActive: (command: string) => boolean;
   }
 
-  let { position, onCommand, isActive }: Props = $props();
+  const { position, onCommand, isActive }: Props = $props();
 
   interface ToolbarButton {
     command: string;
@@ -32,7 +32,9 @@
     <button
       class="toolbar-button"
       class:active={isActive(button.command)}
-      onclick={() => onCommand(button.command)}
+      onclick={() => {
+        onCommand(button.command);
+      }}
       title="{button.label}{button.shortcut !== undefined ? ` (${button.shortcut})` : ''}"
       aria-pressed={isActive(button.command)}
     >
@@ -48,7 +50,12 @@
           />
         </svg>
       {:else}
-        <span class="icon" class:bold={button.command === 'bold'} class:italic={button.command === 'italic'} class:strike={button.command === 'strike'}>
+        <span
+          class="icon"
+          class:bold={button.command === 'bold'}
+          class:italic={button.command === 'italic'}
+          class:strike={button.command === 'strike'}
+        >
           {button.icon}
         </span>
       {/if}
@@ -59,7 +66,9 @@
 
   <button
     class="toolbar-button"
-    onclick={() => onCommand('h1')}
+    onclick={() => {
+      onCommand('h1');
+    }}
     title="Heading 1 (Cmd+Alt+1)"
   >
     <span class="icon">H1</span>
@@ -67,7 +76,9 @@
 
   <button
     class="toolbar-button"
-    onclick={() => onCommand('h2')}
+    onclick={() => {
+      onCommand('h2');
+    }}
     title="Heading 2 (Cmd+Alt+2)"
   >
     <span class="icon">H2</span>

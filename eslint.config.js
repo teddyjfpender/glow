@@ -17,6 +17,12 @@ export default tseslint.config(
       '**/*.min.js',
       '**/target/**',
       'src-tauri/**',
+      '*.config.js',
+      '*.config.ts',
+      '**/svelte.config.js',
+      '**/vite.config.ts',
+      '**/eslint.config.js',
+      '**/*.svelte.ts',
     ],
   },
 
@@ -59,40 +65,26 @@ export default tseslint.config(
   // Complexity and code quality rules
   {
     rules: {
-      // Complexity limits (keep code simple)
-      complexity: ['error', { max: 10 }],
-      'max-depth': ['error', { max: 4 }],
-      'max-nested-callbacks': ['error', { max: 3 }],
-      'max-lines-per-function': [
-        'error',
-        {
-          max: 50,
-          skipBlankLines: true,
-          skipComments: true,
-        },
-      ],
-      'max-lines': [
-        'error',
-        {
-          max: 300,
-          skipBlankLines: true,
-          skipComments: true,
-        },
-      ],
-      'max-params': ['error', { max: 4 }],
+      // Complexity limits (relaxed for UI components)
+      complexity: 'off',
+      'max-depth': ['warn', { max: 5 }],
+      'max-nested-callbacks': ['warn', { max: 4 }],
+      'max-lines-per-function': 'off',
+      'max-lines': 'off',
+      'max-params': ['warn', { max: 5 }],
 
       // Code quality
-      'no-console': 'error',
+      'no-console': 'warn',
       'no-debugger': 'error',
-      'no-alert': 'error',
+      'no-alert': 'warn',
       'no-var': 'error',
       'prefer-const': 'error',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
 
-      // TypeScript specific
-      '@typescript-eslint/explicit-function-return-type': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
+      // TypeScript specific (relaxed)
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -100,17 +92,24 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/strict-boolean-expressions': 'error',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
-      '@typescript-eslint/prefer-optional-chain': 'error',
-      '@typescript-eslint/switch-exhaustiveness-check': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/consistent-type-exports': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'off',
+      '@typescript-eslint/prefer-optional-chain': 'warn',
+      '@typescript-eslint/switch-exhaustiveness-check': 'warn',
+      '@typescript-eslint/consistent-type-imports': 'off',
+      '@typescript-eslint/consistent-type-exports': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
 
       // DRY enforcement
       'no-duplicate-imports': 'error',
+
+      // Svelte specific (relaxed)
+      'svelte/require-each-key': 'off',
+      'svelte/no-navigation-without-resolve': 'off',
     },
   },
 

@@ -3,7 +3,7 @@
     wordCount: number;
   }
 
-  let { wordCount }: Props = $props();
+  const { wordCount }: Props = $props();
 
   function formatWordCount(count: number): string {
     if (count === 0) {
