@@ -1,12 +1,6 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "paths": {
-      "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"]
-    }
-  },
-  "include": ["src/**/*.ts", "src/**/*.svelte", ".svelte-kit/types/**/*.ts"],
-  "exclude": ["node_modules"]
+    "types": ["svelte", "vite/client"]
+  }
 }

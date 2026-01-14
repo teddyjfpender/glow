@@ -4,7 +4,7 @@
 
 use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
-use yrs::{Doc, ReadTxn, Text, Transact, Update};
+use yrs::{Doc, GetString, ReadTxn, Text, TextRef, Transact, Update};
 
 use crate::error::{Error, Result};
 
@@ -12,7 +12,6 @@ use crate::error::{Error, Result};
 #[derive(Debug)]
 pub struct DocumentSync {
     doc: Doc,
-    text: Text,
 }
 
 impl DocumentSync {
@@ -20,8 +19,9 @@ impl DocumentSync {
     #[must_use]
     pub fn new() -> Self {
         let doc = Doc::new();
-        let text = doc.get_or_insert_text("content");
-        Self { doc, text }
+        // Pre-create the text field
+        let _ = doc.get_or_insert_text("content");
+        Self { doc }
     }
 
     /// Creates a document sync from existing CRDT state.
@@ -31,7 +31,7 @@ impl DocumentSync {
     /// Returns an error if the state cannot be decoded.
     pub fn from_state(state: &[u8]) -> Result<Self> {
         let doc = Doc::new();
-        let text = doc.get_or_insert_text("content");
+        let _ = doc.get_or_insert_text("content");
 
         let update = Update::decode_v1(state).map_err(|e| Error::Crdt(e.to_string()))?;
 
@@ -40,36 +40,44 @@ impl DocumentSync {
             .map_err(|e| Error::Crdt(e.to_string()))?;
         drop(txn);
 
-        Ok(Self { doc, text })
+        Ok(Self { doc })
+    }
+
+    /// Gets the text reference for operations.
+    fn text(&self) -> TextRef {
+        self.doc.get_or_insert_text("content")
     }
 
     /// Gets the current text content.
     #[must_use]
     pub fn get_content(&self) -> String {
         let txn = self.doc.transact();
-        self.text.get_string(&txn)
+        self.text().get_string(&txn)
     }
 
     /// Sets the text content, replacing all existing content.
     pub fn set_content(&self, content: &str) {
+        let text = self.text();
         let mut txn = self.doc.transact_mut();
-        let len = self.text.len(&txn);
+        let len = text.len(&txn);
         if len > 0 {
-            self.text.remove_range(&mut txn, 0, len);
+            text.remove_range(&mut txn, 0, len);
         }
-        self.text.insert(&mut txn, 0, content);
+        text.insert(&mut txn, 0, content);
     }
 
     /// Inserts text at the given position.
     pub fn insert(&self, index: u32, content: &str) {
+        let text = self.text();
         let mut txn = self.doc.transact_mut();
-        self.text.insert(&mut txn, index, content);
+        text.insert(&mut txn, index, content);
     }
 
     /// Deletes text at the given range.
     pub fn delete(&self, index: u32, length: u32) {
+        let text = self.text();
         let mut txn = self.doc.transact_mut();
-        self.text.remove_range(&mut txn, index, length);
+        text.remove_range(&mut txn, index, length);
     }
 
     /// Gets the state vector for synchronization.

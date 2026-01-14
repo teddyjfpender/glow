@@ -9,7 +9,7 @@
   let { title, toggleSidebar }: Props = $props();
 
   let isEditing = $state(false);
-  let editValue = $state(title);
+  let editValue = $state('');
 
   function startEditing(): void {
     editValue = title;
@@ -72,7 +72,6 @@
         bind:value={editValue}
         onblur={finishEditing}
         onkeydown={handleKeydown}
-        autofocus
       />
     {:else}
       <button class="title" onclick={startEditing}>
