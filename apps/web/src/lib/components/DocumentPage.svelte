@@ -240,14 +240,16 @@
   .editor :global(.document-content ol) {
     margin: 0 0 12px 0;
     padding-left: 24px;
+    color: var(--glow-text-primary);
   }
 
   .editor :global(.document-content li) {
     margin-bottom: 4px;
+    color: var(--glow-text-primary);
   }
 
   .editor :global(.document-content li::marker) {
-    color: inherit;
+    color: var(--glow-text-primary) !important;
   }
 
   .editor :global(.document-content blockquote) {
