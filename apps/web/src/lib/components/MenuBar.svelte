@@ -63,7 +63,8 @@
       items: [
         { label: 'Image' },
         { label: 'Table' },
-        { label: 'Drawing' },
+        { label: 'Drawing', shortcut: '⌘⇧D' },
+        { label: 'Draw anywhere', shortcut: '⌘⇧A' },
         { label: 'Chart' },
         { divider: true, label: '' },
         { label: 'Horizontal line' },
@@ -140,7 +141,7 @@
 
 <svelte:window onclick={closeMenus} />
 
-<nav class="menu-bar" role="menubar">
+<nav class="menu-bar">
   {#each menus as menu}
     <div class="menu-container">
       <button
@@ -164,8 +165,14 @@
         <div
           class="dropdown"
           role="menu"
+          tabindex="0"
           onclick={(e) => {
             e.stopPropagation();
+          }}
+          onkeydown={(e) => {
+            if (e.key === 'Escape') {
+              closeMenus();
+            }
           }}
         >
           {#each menu.items as item}

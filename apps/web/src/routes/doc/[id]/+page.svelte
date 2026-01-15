@@ -1,11 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
+  import type { Editor } from '@tiptap/core';
   import Header from '$lib/components/Header.svelte';
   import DocumentPage from '$lib/components/DocumentPage.svelte';
   import { documentState } from '$lib/state/document.svelte';
 
   const documentId = $derived($page.params.id);
+  let editorRef: Editor | null = $state(null);
+  let documentPageRef = $state<DocumentPage | null>(null);
+
+  function handleEditorReady(editor: Editor): void {
+    editorRef = editor;
+  }
 
   onMount(() => {
     if (documentId) {
@@ -25,6 +32,14 @@
       case 'Save':
         void documentState.save();
         break;
+      case 'Drawing':
+        if (editorRef) {
+          editorRef.commands.insertExcalidraw();
+        }
+        break;
+      case 'Draw anywhere':
+        documentPageRef?.activateDrawAnywhere();
+        break;
       case 'Word count':
         alert(`Word count: ${documentState.wordCount.toString()}`);
         break;
@@ -37,6 +52,11 @@
     if ((event.metaKey || event.ctrlKey) && event.key === 's') {
       event.preventDefault();
       void documentState.save();
+    }
+    // Cmd/Ctrl+Shift+A to activate draw anywhere mode
+    if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'a') {
+      event.preventDefault();
+      documentPageRef?.activateDrawAnywhere();
     }
   }
 </script>
@@ -61,7 +81,7 @@
     </div>
   {:else}
     <Header onMenuAction={handleMenuAction} />
-    <DocumentPage />
+    <DocumentPage bind:this={documentPageRef} onEditorReady={handleEditorReady} />
   {/if}
 </div>
 

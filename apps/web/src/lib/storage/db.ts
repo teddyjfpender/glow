@@ -3,6 +3,8 @@
  * Provides a simple async API for document CRUD operations.
  */
 
+import { browser } from '$app/environment';
+
 const DB_NAME = 'glow-docs';
 const DB_VERSION = 1;
 const STORE_NAME = 'documents';
@@ -19,6 +21,10 @@ export interface StoredDocument {
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDB(): Promise<IDBDatabase> {
+  if (!browser) {
+    return Promise.reject(new Error('IndexedDB is only available in browser'));
+  }
+
   if (dbPromise !== null) {
     return dbPromise;
   }

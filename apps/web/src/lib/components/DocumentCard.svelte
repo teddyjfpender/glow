@@ -89,7 +89,7 @@
     </div>
 
     <div class="card-menu">
-      <button class="menu-btn" onclick={handleMenuClick}>
+      <button class="menu-btn" onclick={handleMenuClick} aria-label="Document options">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <circle cx="12" cy="5" r="2" />
           <circle cx="12" cy="12" r="2" />
@@ -157,6 +157,7 @@
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 8;
+    line-clamp: 8;
     -webkit-box-orient: vertical;
     margin: 0;
   }

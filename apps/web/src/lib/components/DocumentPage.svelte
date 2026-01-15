@@ -5,12 +5,26 @@
   import Placeholder from '@tiptap/extension-placeholder';
   import Underline from '@tiptap/extension-underline';
   import TextAlign from '@tiptap/extension-text-align';
+  import { ExcalidrawExtension } from '$lib/editor/extensions/excalidraw';
   import Toolbar from './Toolbar.svelte';
   import { documentState } from '$lib/state/document.svelte';
+  import { DrawingOverlay, drawingEditorState } from '$lib/editor/excalidraw';
+
+  interface Props {
+    onEditorReady?: (editor: Editor) => void;
+  }
+
+  const { onEditorReady }: Props = $props();
 
   let editorElement: HTMLDivElement;
+  let documentAreaRef = $state<HTMLDivElement | null>(null);
   let editor: Editor | null = $state(null);
   let lastSyncedContent = '';
+
+  // Expose function to activate draw-anywhere mode
+  export function activateDrawAnywhere(): void {
+    drawingEditorState.activateOverlay();
+  }
 
   // Watch for external content changes (from loading documents)
   $effect(() => {
@@ -41,6 +55,9 @@
         TextAlign.configure({
           types: ['heading', 'paragraph'],
         }),
+        ExcalidrawExtension.configure({
+          defaultTheme: 'dark',
+        }),
       ],
       content: documentState.content,
       editorProps: {
@@ -55,6 +72,7 @@
       },
     });
     lastSyncedContent = documentState.content;
+    onEditorReady?.(editor);
   });
 
   onDestroy(() => {
@@ -78,12 +96,20 @@
   </div>
 
   <!-- Document area with page -->
-  <div class="document-area">
+  <div class="document-area" bind:this={documentAreaRef}>
     <div class="page">
       <div class="editor" bind:this={editorElement}></div>
     </div>
+
+    <!-- Drawing Overlay for "draw anywhere" functionality -->
+    <DrawingOverlay
+      editor={editor ?? undefined}
+      containerRef={documentAreaRef}
+      theme="dark"
+    />
   </div>
 </div>
+
 
 <style>
   .document-container {
@@ -139,6 +165,7 @@
     padding: 20px 40px 60px;
     display: flex;
     justify-content: center;
+    position: relative; /* For DrawingOverlay positioning */
   }
 
   .page {
@@ -255,5 +282,14 @@
 
   .editor :global(.document-content [style*='text-align: justify']) {
     text-align: justify;
+  }
+
+  /* Excalidraw node styles */
+  .editor :global(.document-content [data-node-view-wrapper]) {
+    margin: 16px 0;
+  }
+
+  .editor :global(.document-content .excalidraw-node) {
+    margin: 16px 0;
   }
 </style>
