@@ -364,7 +364,7 @@ export class ExcalidrawCore {
   constructor(container: HTMLElement, options: ExcalidrawCoreOptions = {}) {
     this.container = container;
     this.options = options;
-    this.currentTheme = options.theme ?? 'dark';
+    this.currentTheme = 'dark'; //options.theme ?? 'dark';
     this.viewMode = options.viewModeEnabled ?? false;
     this.hideUI = options.hideUI ?? true; // Default to hiding UI
 
@@ -437,7 +437,7 @@ export class ExcalidrawCore {
             export: false,
             loadScene: false,
             saveToActiveFile: false,
-            toggleTheme: false,
+            toggleTheme: true,
           },
           tools: {
             image: false, // Disable image tool for now
@@ -728,17 +728,18 @@ export async function generatePreviewSvg(
     }
 
     const effectiveTheme = options.theme ?? (scene.appState.theme as Theme) ?? 'dark';
+    const isDark = effectiveTheme === 'dark';
 
     const svg = await exportToSvg({
       elements: visibleElements,
       appState: {
         ...scene.appState,
         theme: effectiveTheme,
-        // Don't apply dark mode filter for export - use colors directly
-        // since we're specifying the exact background color we want
-        exportWithDarkMode: false,
+        // For dark mode: exportWithDarkMode applies the inversion filter to element colors
+        // Use white background which gets inverted to dark by the filter
+        exportWithDarkMode: isDark,
         exportBackground: true,
-        viewBackgroundColor: effectiveTheme === 'dark' ? '#070707ff' : '#ffffff',
+        viewBackgroundColor: '#ffffff',
       },
       files: scene.files,
       exportPadding: options.padding ?? 16,
