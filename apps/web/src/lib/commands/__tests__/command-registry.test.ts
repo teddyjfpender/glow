@@ -47,7 +47,7 @@ interface MockEditor {
 
 // Placeholder class - tests will fail until implemented
 class CommandRegistry {
-  private commands: Map<string, SlashCommand> = new Map();
+  private commands = new Map<string, SlashCommand>();
 
   register(_command: SlashCommand): void {
     throw new Error('Not implemented');
@@ -95,14 +95,15 @@ class CommandRegistry {
 }
 
 class CommandExecutor {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function
   constructor(_registry: CommandRegistry) {}
 
-  async execute(
+  execute(
     _command: SlashCommand,
     _editor: MockEditor,
     _args?: string
   ): Promise<void> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
   parseArgs(_input: string): { commandId: string; args?: string } {
@@ -591,7 +592,7 @@ describe('CommandRegistry', () => {
         execute: executeFn,
       });
 
-      registry.execute('test', mockEditor);
+      void registry.execute('test', mockEditor);
 
       expect(executeFn).toHaveBeenCalledWith(mockEditor, undefined);
     });
@@ -608,7 +609,7 @@ describe('CommandRegistry', () => {
         execute: executeFn,
       });
 
-      registry.execute('test', mockEditor, 'some args');
+      void registry.execute('test', mockEditor, 'some args');
 
       expect(executeFn).toHaveBeenCalledWith(mockEditor, 'some args');
     });

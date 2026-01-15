@@ -4,7 +4,7 @@
  * Generates shareable read-only links for documents.
  * Following TDD methodology: write tests first, then implement.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 interface ShareLinkOptions {
   expiresAt?: Date;
@@ -26,41 +26,41 @@ interface ShareLink {
 
 // Placeholder class - tests will fail until implemented
 class ShareLinkService {
-  async createShareLink(
+  createShareLink(
     _documentId: string,
     _options?: ShareLinkOptions
   ): Promise<ShareLink> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getShareLink(_token: string): Promise<ShareLink | null> {
-    throw new Error('Not implemented');
+  getShareLink(_token: string): Promise<ShareLink | null> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async validateShareLink(
+  validateShareLink(
     _token: string,
     _password?: string
   ): Promise<{ valid: boolean; reason?: string }> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async revokeShareLink(_token: string): Promise<boolean> {
-    throw new Error('Not implemented');
+  revokeShareLink(_token: string): Promise<boolean> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async listShareLinks(_documentId: string): Promise<ShareLink[]> {
-    throw new Error('Not implemented');
+  listShareLinks(_documentId: string): Promise<ShareLink[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async updateShareLink(
+  updateShareLink(
     _token: string,
     _options: Partial<ShareLinkOptions>
   ): Promise<ShareLink> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async recordAccess(_token: string): Promise<void> {
-    throw new Error('Not implemented');
+  recordAccess(_token: string): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   generateToken(): string {

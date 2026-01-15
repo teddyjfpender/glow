@@ -19,10 +19,10 @@ interface MockDocument {
 interface SearchResult {
   document: MockDocument;
   score: number;
-  matches: Array<{
+  matches: {
     field: 'title' | 'content';
-    indices: Array<[number, number]>;
-  }>;
+    indices: [number, number][];
+  }[];
 }
 
 interface SearchFilters {
@@ -53,8 +53,8 @@ class SearchState {
     throw new Error('Not implemented');
   }
 
-  async performSearch(): Promise<void> {
-    throw new Error('Not implemented');
+  performSearch(): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   openSearch(): void {
@@ -179,7 +179,7 @@ describe('SearchState', () => {
       expect(searchState.filters).toEqual({});
     });
 
-    it('should trigger new search when filters change', async () => {
+    it('should trigger new search when filters change', () => {
       const performSearchSpy = vi.spyOn(searchState, 'performSearch');
 
       searchState.setQuery('test');

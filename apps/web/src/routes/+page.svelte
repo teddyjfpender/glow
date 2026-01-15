@@ -7,7 +7,7 @@
   let searchQuery = $state('');
 
   // Filter documents based on search query
-  let filteredDocuments = $derived(() => {
+  const filteredDocuments = $derived(() => {
     if (!searchQuery.trim()) {
       return documentsState.documents;
     }

@@ -4,7 +4,7 @@
  * Converts TipTap HTML content to Markdown format for export.
  * Following TDD methodology: write tests first, then implement.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // Placeholder class - tests will fail until implemented
 class MarkdownExporter {
@@ -393,7 +393,7 @@ describe('MarkdownExporter', () => {
     it('should export large document within 2 seconds', () => {
       // Generate large HTML content
       const paragraphs = Array.from({ length: 1000 }, (_, i) =>
-        `<p>Paragraph ${i} with some content that includes <strong>bold</strong> and <em>italic</em> text.</p>`
+        `<p>Paragraph ${String(i)} with some content that includes <strong>bold</strong> and <em>italic</em> text.</p>`
       ).join('');
 
       const start = performance.now();

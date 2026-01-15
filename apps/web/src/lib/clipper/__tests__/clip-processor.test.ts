@@ -36,23 +36,20 @@ interface ClipMetadata {
 
 // Placeholder class - tests will fail until implemented
 class ClipProcessor {
-  async processUrl(_url: string, _options?: ClipOptions): Promise<ClipResult> {
-    throw new Error('Not implemented');
+  processUrl(_url: string, _options?: ClipOptions): Promise<ClipResult> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async processHtml(
+  processHtml(
     _html: string,
     _sourceUrl: string,
     _options?: ClipOptions
   ): Promise<ClipResult> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async processSelection(
-    _html: string,
-    _sourceUrl: string
-  ): Promise<ClipResult> {
-    throw new Error('Not implemented');
+  processSelection(_html: string, _sourceUrl: string): Promise<ClipResult> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   extractMetadata(_html: string): ClipMetadata {
@@ -758,7 +755,7 @@ describe('ClipProcessor', () => {
       // Generate large HTML
       const paragraphs = Array.from(
         { length: 1000 },
-        (_, i) => `<p>Paragraph ${i} with some content.</p>`
+        (_, i) => `<p>Paragraph ${String(i)} with some content.</p>`
       ).join('');
       const html = `<article>${paragraphs}</article>`;
 

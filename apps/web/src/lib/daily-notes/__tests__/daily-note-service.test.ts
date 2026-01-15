@@ -37,54 +37,48 @@ class DailyNoteService {
   private dateFormat = 'YYYY-MM-DD';
   private titleFormat = 'MMMM D, YYYY';
 
-  async getTodaysNote(): Promise<DailyNote | null> {
-    throw new Error('Not implemented');
+  getTodaysNote(): Promise<DailyNote | null> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getOrCreateTodaysNote(): Promise<DailyNote> {
-    throw new Error('Not implemented');
+  getOrCreateTodaysNote(): Promise<DailyNote> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getNoteForDate(_date: Date): Promise<DailyNote | null> {
-    throw new Error('Not implemented');
+  getNoteForDate(_date: Date): Promise<DailyNote | null> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getOrCreateNoteForDate(_date: Date): Promise<DailyNote> {
-    throw new Error('Not implemented');
+  getOrCreateNoteForDate(_date: Date): Promise<DailyNote> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getRecentDailyNotes(_limit?: number): Promise<DailyNote[]> {
-    throw new Error('Not implemented');
+  getRecentDailyNotes(_limit?: number): Promise<DailyNote[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getDailyNotesInRange(
-    _startDate: Date,
-    _endDate: Date
-  ): Promise<DailyNote[]> {
-    throw new Error('Not implemented');
+  getDailyNotesInRange(_startDate: Date, _endDate: Date): Promise<DailyNote[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async createDailyNote(_date: Date, _useTemplate?: boolean): Promise<DailyNote> {
-    throw new Error('Not implemented');
+  createDailyNote(_date: Date, _useTemplate?: boolean): Promise<DailyNote> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async setTemplate(_template: DailyNoteTemplate): Promise<void> {
-    throw new Error('Not implemented');
+  setTemplate(_template: DailyNoteTemplate): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getTemplate(): Promise<DailyNoteTemplate | null> {
-    throw new Error('Not implemented');
+  getTemplate(): Promise<DailyNoteTemplate | null> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async generateWeeklyReview(_weekStartDate: Date): Promise<WeeklyReview> {
-    throw new Error('Not implemented');
+  generateWeeklyReview(_weekStartDate: Date): Promise<WeeklyReview> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async generateMonthlyReview(
-    _year: number,
-    _month: number
-  ): Promise<WeeklyReview> {
-    throw new Error('Not implemented');
+  generateMonthlyReview(_year: number, _month: number): Promise<WeeklyReview> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   formatDateForTitle(_date: Date): string {
@@ -107,8 +101,8 @@ class DailyNoteService {
     throw new Error('Not implemented');
   }
 
-  async getStreak(): Promise<number> {
-    throw new Error('Not implemented');
+  getStreak(): Promise<number> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   isDailyNote(_documentId: string): boolean {
@@ -260,7 +254,7 @@ describe('DailyNoteService', () => {
     beforeEach(async () => {
       // Create notes for January 10-20
       for (let i = 10; i <= 20; i++) {
-        await service.createDailyNote(new Date(`2024-01-${i}`));
+        await service.createDailyNote(new Date(`2024-01-${String(i)}`));
       }
     });
 
@@ -349,7 +343,7 @@ describe('DailyNoteService', () => {
     beforeEach(async () => {
       // Create notes for week of Jan 8-14
       for (let i = 8; i <= 14; i++) {
-        const note = await service.createDailyNote(new Date(`2024-01-${i}`));
+        const note = await service.createDailyNote(new Date(`2024-01-${String(i).padStart(2, '0')}`));
         // Simulate content
         note.wordCount = 100 + i * 10;
       }

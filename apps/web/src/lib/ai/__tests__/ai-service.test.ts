@@ -65,59 +65,61 @@ class AIService {
     };
   }
 
-  async complete(_request: AIRequest): Promise<AIResponse> {
-    throw new Error('Not implemented');
+  complete(_request: AIRequest): Promise<AIResponse> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
+  // eslint-disable-next-line require-yield
   async *stream(_request: AIRequest): AsyncGenerator<AIStreamChunk> {
+    await Promise.resolve();
     throw new Error('Not implemented');
   }
 
-  async executeCommand(
+  executeCommand(
     _command: AICommand,
     _text: string,
     _options?: { language?: string }
   ): Promise<string> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async improveWriting(_text: string): Promise<string> {
-    throw new Error('Not implemented');
+  improveWriting(_text: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async fixGrammar(_text: string): Promise<string> {
-    throw new Error('Not implemented');
+  fixGrammar(_text: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async makeShorter(_text: string): Promise<string> {
-    throw new Error('Not implemented');
+  makeShorter(_text: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async makeLonger(_text: string): Promise<string> {
-    throw new Error('Not implemented');
+  makeLonger(_text: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async simplify(_text: string): Promise<string> {
-    throw new Error('Not implemented');
+  simplify(_text: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async translate(_text: string, _targetLanguage: string): Promise<string> {
-    throw new Error('Not implemented');
+  translate(_text: string, _targetLanguage: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async summarize(
+  summarize(
     _text: string,
     _length?: 'brief' | 'medium' | 'detailed'
   ): Promise<string> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async explainDrawing(_svgOrDescription: string): Promise<string> {
-    throw new Error('Not implemented');
+  explainDrawing(_svgOrDescription: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async generateFromPrompt(_prompt: string): Promise<string> {
-    throw new Error('Not implemented');
+  generateFromPrompt(_prompt: string): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   getSystemPrompt(_command: AICommand): string {

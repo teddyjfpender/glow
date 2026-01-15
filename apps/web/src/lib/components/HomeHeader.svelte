@@ -5,7 +5,7 @@
     onSearch?: (query: string) => void;
   }
 
-  let { onSearch }: Props = $props();
+  const { onSearch }: Props = $props();
 
   let searchQuery = $state('');
 

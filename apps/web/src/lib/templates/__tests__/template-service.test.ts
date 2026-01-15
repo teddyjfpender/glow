@@ -36,54 +36,49 @@ interface TemplateParseResult {
   cleanContent: string;
 }
 
-interface TemplateRenderOptions {
-  [variableName: string]: string | Date | number;
-}
+type TemplateRenderOptions = Record<string, string | Date | number>;
 
 // Placeholder class - tests will fail until implemented
 class TemplateService {
-  async getTemplates(): Promise<Template[]> {
-    throw new Error('Not implemented');
+  getTemplates(): Promise<Template[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getTemplate(_id: string): Promise<Template | null> {
-    throw new Error('Not implemented');
+  getTemplate(_id: string): Promise<Template | null> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getBuiltInTemplates(): Promise<Template[]> {
-    throw new Error('Not implemented');
+  getBuiltInTemplates(): Promise<Template[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getCustomTemplates(): Promise<Template[]> {
-    throw new Error('Not implemented');
+  getCustomTemplates(): Promise<Template[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getTemplatesByCategory(
-    _category: Template['category']
-  ): Promise<Template[]> {
-    throw new Error('Not implemented');
+  getTemplatesByCategory(_category: Template['category']): Promise<Template[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async createTemplate(_template: Omit<Template, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>): Promise<Template> {
-    throw new Error('Not implemented');
-  }
-
-  async updateTemplate(
-    _id: string,
-    _updates: Partial<Template>
+  createTemplate(
+    _template: Omit<Template, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>
   ): Promise<Template> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async deleteTemplate(_id: string): Promise<boolean> {
-    throw new Error('Not implemented');
+  updateTemplate(_id: string, _updates: Partial<Template>): Promise<Template> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async renderTemplate(
+  deleteTemplate(_id: string): Promise<boolean> {
+    return Promise.reject(new Error('Not implemented'));
+  }
+
+  renderTemplate(
     _templateId: string,
     _values: TemplateRenderOptions
   ): Promise<string> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
   parseVariables(_content: string): TemplateParseResult {
@@ -97,16 +92,16 @@ class TemplateService {
     throw new Error('Not implemented');
   }
 
-  async incrementUsageCount(_templateId: string): Promise<void> {
-    throw new Error('Not implemented');
+  incrementUsageCount(_templateId: string): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getMostUsedTemplates(_limit?: number): Promise<Template[]> {
-    throw new Error('Not implemented');
+  getMostUsedTemplates(_limit?: number): Promise<Template[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async searchTemplates(_query: string): Promise<Template[]> {
-    throw new Error('Not implemented');
+  searchTemplates(_query: string): Promise<Template[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 }
 

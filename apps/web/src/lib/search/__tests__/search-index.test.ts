@@ -8,7 +8,7 @@
  *
  * These tests define the contract for the search index implementation.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // Import will be created after tests pass
 // import { SearchIndex, type SearchResult } from '../search-index';
@@ -27,27 +27,24 @@ interface MockDocument {
 class SearchIndex {
   private documents: MockDocument[] = [];
 
-  async addDocument(_doc: MockDocument): Promise<void> {
-    throw new Error('Not implemented');
+  addDocument(_doc: MockDocument): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async updateDocument(_doc: MockDocument): Promise<void> {
-    throw new Error('Not implemented');
+  updateDocument(_doc: MockDocument): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async removeDocument(_id: string): Promise<void> {
-    throw new Error('Not implemented');
+  removeDocument(_id: string): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async search(_query: string): Promise<SearchResult[]> {
-    throw new Error('Not implemented');
+  search(_query: string): Promise<SearchResult[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async searchWithFilters(
-    _query: string,
-    _filters: SearchFilters
-  ): Promise<SearchResult[]> {
-    throw new Error('Not implemented');
+  searchWithFilters(_query: string, _filters: SearchFilters): Promise<SearchResult[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   clear(): void {
@@ -62,10 +59,10 @@ class SearchIndex {
 interface SearchResult {
   document: MockDocument;
   score: number;
-  matches: Array<{
+  matches: {
     field: 'title' | 'content';
-    indices: Array<[number, number]>;
-  }>;
+    indices: [number, number][];
+  }[];
 }
 
 interface SearchFilters {
@@ -274,10 +271,10 @@ describe('SearchIndex', () => {
       // Add 997 more documents (already have 3)
       for (let i = 4; i <= 1000; i++) {
         await searchIndex.addDocument({
-          id: `doc-${i}`,
-          title: `Document ${i}`,
-          content: `<p>Content for document ${i} with some searchable text.</p>`,
-          previewText: `Content for document ${i}...`,
+          id: `doc-${String(i)}`,
+          title: `Document ${String(i)}`,
+          content: `<p>Content for document ${String(i)} with some searchable text.</p>`,
+          previewText: `Content for document ${String(i)}...`,
           createdAt: new Date('2024-01-01'),
           modifiedAt: new Date('2024-01-01'),
         });
@@ -416,10 +413,10 @@ describe('SearchIndex', () => {
   describe('edge cases', () => {
     it('should handle concurrent indexing operations', async () => {
       const docs = Array.from({ length: 10 }, (_, i) => ({
-        id: `concurrent-${i}`,
-        title: `Concurrent Doc ${i}`,
-        content: `<p>Content ${i}</p>`,
-        previewText: `Content ${i}`,
+        id: `concurrent-${String(i)}`,
+        title: `Concurrent Doc ${String(i)}`,
+        content: `<p>Content ${String(i)}</p>`,
+        previewText: `Content ${String(i)}`,
         createdAt: new Date(),
         modifiedAt: new Date(),
       }));

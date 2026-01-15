@@ -4,7 +4,7 @@
  * Converts TipTap HTML content to PDF format for export.
  * Following TDD methodology: write tests first, then implement.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 interface PdfOptions {
   pageSize?: 'A4' | 'Letter' | 'Legal';
@@ -31,28 +31,28 @@ interface PdfExportResult {
 
 // Placeholder class - tests will fail until implemented
 class PdfExporter {
-  async export(_html: string, _options?: PdfOptions): Promise<PdfExportResult> {
-    throw new Error('Not implemented');
+  export(_html: string, _options?: PdfOptions): Promise<PdfExportResult> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async exportWithTitle(
+  exportWithTitle(
     _html: string,
     _title: string,
     _options?: PdfOptions
   ): Promise<PdfExportResult> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async exportToFile(
+  exportToFile(
     _html: string,
     _filename: string,
     _options?: PdfOptions
   ): Promise<Blob> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async generatePreview(_html: string, _options?: PdfOptions): Promise<string> {
-    throw new Error('Not implemented');
+  generatePreview(_html: string, _options?: PdfOptions): Promise<string> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   calculatePageCount(_html: string, _options?: PdfOptions): number {
@@ -505,7 +505,7 @@ describe('PdfExporter', () => {
 
     it('should generate first page preview', async () => {
       const longContent = Array.from({ length: 100 }, (_, i) =>
-        `<p>Paragraph ${i}</p>`
+        `<p>Paragraph ${String(i)}</p>`
       ).join('');
 
       const preview = await exporter.generatePreview(longContent);
@@ -528,7 +528,7 @@ describe('PdfExporter', () => {
 
     it('should estimate page count for long content', () => {
       const longContent = Array.from({ length: 200 }, (_, i) =>
-        `<p>Paragraph ${i} with some text content that takes up space on the page.</p>`
+        `<p>Paragraph ${String(i)} with some text content that takes up space on the page.</p>`
       ).join('');
 
       const count = exporter.calculatePageCount(longContent);
@@ -566,7 +566,7 @@ describe('PdfExporter', () => {
   describe('performance', () => {
     it('should export large document within 5 seconds', async () => {
       const largeParagraphs = Array.from({ length: 500 }, (_, i) =>
-        `<p>Paragraph ${i} with <strong>bold</strong> and <em>italic</em> formatting.</p>`
+        `<p>Paragraph ${String(i)} with <strong>bold</strong> and <em>italic</em> formatting.</p>`
       ).join('');
 
       const start = performance.now();
@@ -581,7 +581,7 @@ describe('PdfExporter', () => {
         { length: 20 },
         (_, i) =>
           `<div data-type="excalidraw" data-scene='{"elements":[]}' data-width="400" data-height="300"></div>
-           <p>Text after image ${i}</p>`
+           <p>Text after image ${String(i)}</p>`
       ).join('');
 
       const start = performance.now();

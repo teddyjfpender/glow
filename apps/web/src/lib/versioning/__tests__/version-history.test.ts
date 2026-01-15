@@ -23,11 +23,11 @@ interface DocumentVersion {
 interface VersionDiff {
   additions: number;
   deletions: number;
-  changes: Array<{
+  changes: {
     type: 'add' | 'delete' | 'modify';
     content: string;
     position: number;
-  }>;
+  }[];
 }
 
 interface VersionCompare {
@@ -39,54 +39,51 @@ interface VersionCompare {
 
 // Placeholder class - tests will fail until implemented
 class VersionHistoryService {
-  async createVersion(
+  createVersion(
     _documentId: string,
     _content: string,
     _title: string,
     _options?: { changeType?: 'auto' | 'manual'; changeSummary?: string }
   ): Promise<DocumentVersion> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getVersions(_documentId: string): Promise<DocumentVersion[]> {
-    throw new Error('Not implemented');
+  getVersions(_documentId: string): Promise<DocumentVersion[]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getVersion(
+  getVersion(
     _documentId: string,
     _versionNumber: number
   ): Promise<DocumentVersion | null> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getLatestVersion(_documentId: string): Promise<DocumentVersion | null> {
-    throw new Error('Not implemented');
+  getLatestVersion(_documentId: string): Promise<DocumentVersion | null> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async restoreVersion(
+  restoreVersion(
     _documentId: string,
     _versionNumber: number
   ): Promise<DocumentVersion> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async compareVersions(
+  compareVersions(
     _documentId: string,
     _fromVersion: number,
     _toVersion: number
   ): Promise<VersionCompare> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async deleteOldVersions(
-    _documentId: string,
-    _keepCount: number
-  ): Promise<number> {
-    throw new Error('Not implemented');
+  deleteOldVersions(_documentId: string, _keepCount: number): Promise<number> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async getVersionCount(_documentId: string): Promise<number> {
-    throw new Error('Not implemented');
+  getVersionCount(_documentId: string): Promise<number> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
   shouldCreateAutoVersion(
@@ -494,7 +491,7 @@ describe('VersionHistoryService', () => {
       for (let i = 1; i <= 10; i++) {
         await versionService.createVersion(
           'doc-123',
-          `<p>Version ${i}</p>`,
+          `<p>Version ${String(i)}</p>`,
           'Doc'
         );
       }
@@ -579,7 +576,7 @@ describe('VersionHistoryService', () => {
     it('should retrieve version list within 50ms for 100 versions', async () => {
       // Create 100 versions
       for (let i = 0; i < 100; i++) {
-        await versionService.createVersion('doc-123', `<p>V${i}</p>`, 'Doc');
+        await versionService.createVersion('doc-123', `<p>V${String(i)}</p>`, 'Doc');
       }
 
       const start = performance.now();

@@ -31,19 +31,19 @@ interface UnlinkedMention {
 }
 
 interface LinkParseResult {
-  links: Array<{
+  links: {
     title: string;
     start: number;
     end: number;
-  }>;
+  }[];
   cleanContent: string;
 }
 
 // Placeholder class - tests will fail until implemented
 class BacklinkIndex {
-  private outgoing: Map<string, Set<string>> = new Map();
-  private incoming: Map<string, Set<string>> = new Map();
-  private titleToId: Map<string, string> = new Map();
+  private outgoing = new Map<string, Set<string>>();
+  private incoming = new Map<string, Set<string>>();
+  private titleToId = new Map<string, string>();
   private links: DocumentLink[] = [];
 
   addDocument(_id: string, _title: string, _content: string): void {
@@ -78,7 +78,7 @@ class BacklinkIndex {
     throw new Error('Not implemented');
   }
 
-  getMostLinkedDocuments(_limit?: number): Array<{ id: string; count: number }> {
+  getMostLinkedDocuments(_limit?: number): { id: string; count: number }[] {
     throw new Error('Not implemented');
   }
 
@@ -100,7 +100,7 @@ class LinkParser {
     throw new Error('Not implemented');
   }
 
-  extractLinks(_content: string): Array<{ title: string; start: number; end: number }> {
+  extractLinks(_content: string): { title: string; start: number; end: number }[] {
     throw new Error('Not implemented');
   }
 
@@ -423,9 +423,9 @@ describe('BacklinkIndex', () => {
 
       for (let i = 0; i < 100; i++) {
         index.addDocument(
-          `doc-${i}`,
-          `Document ${i}`,
-          `<p>Links to [[Document ${(i + 1) % 100}]]</p>`
+          `doc-${String(i)}`,
+          `Document ${String(i)}`,
+          `<p>Links to [[Document ${String((i + 1) % 100)}]]</p>`
         );
       }
 
@@ -437,8 +437,8 @@ describe('BacklinkIndex', () => {
       // Setup
       for (let i = 0; i < 50; i++) {
         index.addDocument(
-          `doc-${i}`,
-          `Document ${i}`,
+          `doc-${String(i)}`,
+          `Document ${String(i)}`,
           `<p>Links to [[Target Document]]</p>`
         );
       }
