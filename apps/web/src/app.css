@@ -189,10 +189,16 @@ pre code {
 .ProseMirror ol {
   padding-left: 1.5em;
   margin-bottom: 1em;
+  color: var(--glow-text-primary);
 }
 
 .ProseMirror li {
   margin-bottom: 0.25em;
+  color: var(--glow-text-primary);
+}
+
+.ProseMirror li::marker {
+  color: var(--glow-text-primary);
 }
 
 .ProseMirror blockquote {
