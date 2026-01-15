@@ -246,6 +246,10 @@
     margin-bottom: 4px;
   }
 
+  .editor :global(.document-content li::marker) {
+    color: inherit;
+  }
+
   .editor :global(.document-content blockquote) {
     border-left: 4px solid var(--glow-border-default);
     margin: 12px 0;
