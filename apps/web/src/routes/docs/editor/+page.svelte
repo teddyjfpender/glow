@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
+
   const codeBlockExample = `\`\`\`javascript
 function hello() {
   console.log('Hello, world!');
@@ -175,8 +177,8 @@ function hello() {
   <section>
     <h2>Next Steps</h2>
     <ul>
-      <li><a href="/docs/drawing">Learn about drawing with Excalidraw</a></li>
-      <li><a href="/docs/shortcuts">View all keyboard shortcuts</a></li>
+      <li><a href={resolve('/docs/drawing')}>Learn about drawing with Excalidraw</a></li>
+      <li><a href={resolve('/docs/shortcuts')}>View all keyboard shortcuts</a></li>
     </ul>
   </section>
 </article>

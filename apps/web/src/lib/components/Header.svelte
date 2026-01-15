@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import MenuBar from './MenuBar.svelte';
   import { documentState } from '$lib/state/document.svelte';
 
@@ -39,7 +40,7 @@
   <div class="header-top">
     <div class="left">
       <!-- Glow Logo -->
-      <a href="/" class="logo-link" aria-label="Go to home">
+      <a href={resolve('/')} class="logo-link" aria-label="Go to home">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 100 141.42">
           <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
           <path fill="#424242" d="M75 0v25h25L75 0z"/>

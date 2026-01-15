@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
+  import { resolve } from '$app/paths';
   import type { Editor } from '@tiptap/core';
   import Header from '$lib/components/Header.svelte';
   import DocumentPage from '$lib/components/DocumentPage.svelte';
@@ -27,7 +28,7 @@
   function handleMenuAction(action: string): void {
     switch (action) {
       case 'New':
-        window.location.href = '/';
+        window.location.href = resolve('/');
         break;
       case 'Save':
         void documentState.save();
@@ -79,7 +80,7 @@
       </svg>
       <h2>Document not found</h2>
       <p>{documentState.error}</p>
-      <a href="/" class="back-link">Back to home</a>
+      <a href={resolve('/')} class="back-link">Back to home</a>
     </div>
   {:else}
     <Header onMenuAction={handleMenuAction} />

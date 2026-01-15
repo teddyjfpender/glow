@@ -1,3 +1,7 @@
+<script lang="ts">
+  import { resolve } from '$app/paths';
+</script>
+
 <article class="docs-page">
   <header class="docs-header">
     <h1>Getting Started</h1>
@@ -100,7 +104,7 @@
       <li>Click outside the canvas or press <kbd>Escape</kbd> to exit drawing mode</li>
     </ol>
     <p>
-      See the <a href="/docs/drawing">Drawing documentation</a> for more details on using Excalidraw.
+      See the <a href={resolve('/docs/drawing')}>Drawing documentation</a> for more details on using Excalidraw.
     </p>
   </section>
 
@@ -151,9 +155,9 @@
   <section>
     <h2>Next Steps</h2>
     <ul>
-      <li><a href="/docs/editor">Learn more about the editor</a></li>
-      <li><a href="/docs/drawing">Master the drawing tools</a></li>
-      <li><a href="/docs/shortcuts">View all keyboard shortcuts</a></li>
+      <li><a href={resolve('/docs/editor')}>Learn more about the editor</a></li>
+      <li><a href={resolve('/docs/drawing')}>Master the drawing tools</a></li>
+      <li><a href={resolve('/docs/shortcuts')}>View all keyboard shortcuts</a></li>
     </ul>
   </section>
 </article>

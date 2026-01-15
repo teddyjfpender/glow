@@ -1,3 +1,7 @@
+<script lang="ts">
+  import { resolve } from '$app/paths';
+</script>
+
 <article class="docs-page">
   <header class="docs-header">
     <h1>Drawing</h1>
@@ -267,8 +271,8 @@
   <section>
     <h2>Next Steps</h2>
     <ul>
-      <li><a href="/docs/editor">Learn more about the text editor</a></li>
-      <li><a href="/docs/shortcuts">View all keyboard shortcuts</a></li>
+      <li><a href={resolve('/docs/editor')}>Learn more about the text editor</a></li>
+      <li><a href={resolve('/docs/shortcuts')}>View all keyboard shortcuts</a></li>
     </ul>
   </section>
 </article>

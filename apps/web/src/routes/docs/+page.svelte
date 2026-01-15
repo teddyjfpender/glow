@@ -1,3 +1,7 @@
+<script lang="ts">
+  import { resolve } from '$app/paths';
+</script>
+
 <article class="docs-page">
   <header class="docs-header">
     <h1>Glow Documentation</h1>
@@ -8,7 +12,7 @@
   </header>
 
   <section class="features-grid">
-    <a href="/docs/editor" class="feature-card">
+    <a href={resolve('/docs/editor')} class="feature-card">
       <span class="feature-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -22,7 +26,7 @@
       <p>Powerful editing with formatting, lists, code blocks, and more.</p>
     </a>
 
-    <a href="/docs/drawing" class="feature-card">
+    <a href={resolve('/docs/drawing')} class="feature-card">
       <span class="feature-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 19l7-7 3 3-7 7-3-3z" />
@@ -35,7 +39,7 @@
       <p>Create diagrams and sketches with Excalidraw built right in.</p>
     </a>
 
-    <a href="/docs/shortcuts" class="feature-card">
+    <a href={resolve('/docs/shortcuts')} class="feature-card">
       <span class="feature-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -53,7 +57,7 @@
       <p>Navigate and edit efficiently with comprehensive shortcuts.</p>
     </a>
 
-    <a href="/docs/getting-started" class="feature-card">
+    <a href={resolve('/docs/getting-started')} class="feature-card">
       <span class="feature-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />

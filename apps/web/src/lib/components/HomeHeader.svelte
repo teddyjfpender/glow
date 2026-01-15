@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { documentsState } from '$lib/state/documents.svelte';
 
   interface Props {
@@ -17,13 +18,13 @@
 
   async function handleNewDocument(): Promise<void> {
     const doc = await documentsState.create();
-    window.location.href = `/doc/${doc.id}`;
+    window.location.href = resolve(`/doc/${doc.id}`);
   }
 </script>
 
 <header class="home-header">
   <div class="header-content">
-    <a href="/" class="logo">
+    <a href={resolve('/')} class="logo">
       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 100 141.42" class="logo-icon">
         <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
         <path fill="#424242" d="M75 0v25h25L75 0z"/>
@@ -55,7 +56,7 @@
     </div>
 
     <div class="header-actions">
-      <a href="/docs" class="docs-link">
+      <a href={resolve('/docs')} class="docs-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />

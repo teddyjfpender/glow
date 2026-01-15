@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { resolve } from '$app/paths';
 
   interface NavItem {
     title: string;
@@ -8,16 +9,16 @@
   }
 
   const navItems: NavItem[] = [
-    { title: 'Overview', href: '/docs' },
-    { title: 'Getting Started', href: '/docs/getting-started' },
-    { title: 'Editor', href: '/docs/editor' },
-    { title: 'Drawing', href: '/docs/drawing' },
-    { title: 'Keyboard Shortcuts', href: '/docs/shortcuts' },
+    { title: 'Overview', href: resolve('/docs') },
+    { title: 'Getting Started', href: resolve('/docs/getting-started') },
+    { title: 'Editor', href: resolve('/docs/editor') },
+    { title: 'Drawing', href: resolve('/docs/drawing') },
+    { title: 'Keyboard Shortcuts', href: resolve('/docs/shortcuts') },
   ];
 
   function isActive(href: string): boolean {
-    if (href === '/docs') {
-      return $page.url.pathname === '/docs';
+    if (href === resolve('/docs')) {
+      return $page.url.pathname === resolve('/docs');
     }
     return $page.url.pathname.startsWith(href);
   }
@@ -25,7 +26,7 @@
 
 <div class="docs-layout">
   <aside class="docs-sidebar">
-    <a href="/" class="docs-logo">
+    <a href={resolve('/')} class="docs-logo">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 100 141.42">
         <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
         <path fill="#424242" d="M75 0v25h25L75 0z"/>
@@ -49,7 +50,7 @@
     </nav>
 
     <div class="docs-sidebar-footer">
-      <a href="/" class="back-link">
+      <a href={resolve('/')} class="back-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
