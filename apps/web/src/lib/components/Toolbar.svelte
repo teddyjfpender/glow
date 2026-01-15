@@ -22,10 +22,44 @@
     { label: 'Heading 3', value: 'h3' },
   ];
 
+  // Zoom options
+  const zoomOptions = [50, 75, 100, 125, 150, 200];
+
   let currentFont = $state('Arial');
   let currentSize = $state(11);
   let currentStyle = $state('Normal text');
   let zoom = $state(100);
+
+  // Dropdown state management
+  let activeDropdown = $state<string | null>(null);
+
+  function toggleDropdown(name: string): void {
+    if (activeDropdown === name) {
+      activeDropdown = null;
+    } else {
+      activeDropdown = name;
+    }
+  }
+
+  function closeDropdowns(): void {
+    activeDropdown = null;
+  }
+
+  function selectZoom(value: number): void {
+    zoom = value;
+    activeDropdown = null;
+  }
+
+  function selectStyle(label: string, value: string): void {
+    currentStyle = label;
+    setHeadingStyle(value);
+    activeDropdown = null;
+  }
+
+  function selectFont(font: string): void {
+    currentFont = font;
+    activeDropdown = null;
+  }
 
   function runCommand(command: string): void {
     if (editor === null) return;
@@ -162,6 +196,8 @@
   }
 </script>
 
+<svelte:window onclick={closeDropdowns} />
+
 <div class="toolbar">
   <!-- Undo/Redo -->
   <div class="tool-group">
@@ -211,43 +247,162 @@
 
   <!-- Zoom -->
   <div class="tool-group">
-    <select class="select-small" bind:value={zoom} aria-label="Zoom">
-      <option value={50}>50%</option>
-      <option value={75}>75%</option>
-      <option value={100}>100%</option>
-      <option value={125}>125%</option>
-      <option value={150}>150%</option>
-      <option value={200}>200%</option>
-    </select>
+    <div class="dropdown-container">
+      <button
+        class="dropdown-trigger select-small"
+        class:active={activeDropdown === 'zoom'}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleDropdown('zoom');
+        }}
+        aria-label="Zoom"
+        aria-haspopup="true"
+        aria-expanded={activeDropdown === 'zoom'}
+      >
+        <span>{zoom}%</span>
+        <svg
+          class="dropdown-arrow"
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {#if activeDropdown === 'zoom'}
+        <div
+          class="dropdown-menu"
+          role="menu"
+          tabindex="-1"
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => {
+            if (e.key === 'Escape') closeDropdowns();
+          }}
+        >
+          {#each zoomOptions as option}
+            <button
+              class="dropdown-item"
+              class:selected={zoom === option}
+              onclick={() => selectZoom(option)}
+              role="menuitem"
+            >
+              {option}%
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="divider"></div>
 
   <!-- Styles -->
   <div class="tool-group">
-    <select
-      class="select-medium"
-      bind:value={currentStyle}
-      onchange={() => {
-        setHeadingStyle(headingStyles.find((s) => s.label === currentStyle)?.value ?? 'paragraph');
-      }}
-      aria-label="Text style"
-    >
-      {#each headingStyles as style}
-        <option value={style.label}>{style.label}</option>
-      {/each}
-    </select>
+    <div class="dropdown-container">
+      <button
+        class="dropdown-trigger select-medium"
+        class:active={activeDropdown === 'style'}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleDropdown('style');
+        }}
+        aria-label="Text style"
+        aria-haspopup="true"
+        aria-expanded={activeDropdown === 'style'}
+      >
+        <span>{currentStyle}</span>
+        <svg
+          class="dropdown-arrow"
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {#if activeDropdown === 'style'}
+        <div
+          class="dropdown-menu"
+          role="menu"
+          tabindex="-1"
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => {
+            if (e.key === 'Escape') closeDropdowns();
+          }}
+        >
+          {#each headingStyles as style}
+            <button
+              class="dropdown-item"
+              class:selected={currentStyle === style.label}
+              onclick={() => selectStyle(style.label, style.value)}
+              role="menuitem"
+            >
+              {style.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="divider"></div>
 
   <!-- Font Family -->
   <div class="tool-group">
-    <select class="select-medium" bind:value={currentFont} aria-label="Font family">
-      {#each fontFamilies as font}
-        <option value={font}>{font}</option>
-      {/each}
-    </select>
+    <div class="dropdown-container">
+      <button
+        class="dropdown-trigger select-medium"
+        class:active={activeDropdown === 'font'}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleDropdown('font');
+        }}
+        aria-label="Font family"
+        aria-haspopup="true"
+        aria-expanded={activeDropdown === 'font'}
+      >
+        <span>{currentFont}</span>
+        <svg
+          class="dropdown-arrow"
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {#if activeDropdown === 'font'}
+        <div
+          class="dropdown-menu"
+          role="menu"
+          tabindex="-1"
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => {
+            if (e.key === 'Escape') closeDropdowns();
+          }}
+        >
+          {#each fontFamilies as font}
+            <button
+              class="dropdown-item"
+              class:selected={currentFont === font}
+              onclick={() => selectFont(font)}
+              role="menuitem"
+            >
+              {font}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="divider"></div>
@@ -744,8 +899,16 @@
     flex: 1;
   }
 
-  .select-small,
-  .select-medium {
+  /* Custom dropdown styles */
+  .dropdown-container {
+    position: relative;
+  }
+
+  .dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
     font-size: 13px;
     color: var(--glow-text-primary);
     background-color: transparent;
@@ -756,29 +919,65 @@
     transition: border-color var(--glow-transition-fast);
   }
 
-  .select-small:hover,
-  .select-medium:hover {
+  .dropdown-trigger:hover {
     border-color: var(--glow-border-default);
   }
 
-  .select-small:focus,
-  .select-medium:focus {
-    outline: none;
+  .dropdown-trigger.active {
     border-color: var(--glow-accent-primary);
   }
 
-  .select-small {
+  .dropdown-trigger.select-small {
     width: 70px;
   }
 
-  .select-medium {
-    width: 120px;
+  .dropdown-trigger.select-medium {
+    width: 130px;
   }
 
-  .select-small option,
-  .select-medium option {
-    background-color: var(--glow-bg-surface);
-    color: var(--glow-text-primary);
+  .dropdown-arrow {
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 100%;
+    background-color: var(--glow-bg-elevated, #1a1a1a);
+    border: 1px solid var(--glow-border-subtle, #3a3a4a);
+    border-radius: 6px;
+    padding: 4px 0;
+    margin-top: 2px;
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.3),
+      0 2px 4px -2px rgb(0 0 0 / 0.3);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--glow-text-primary, #e0e0e0);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color var(--glow-transition-fast);
+  }
+
+  .dropdown-item:hover {
+    background-color: var(--glow-bg-surface, #2a2a2a);
+  }
+
+  .dropdown-item.selected {
+    background-color: var(--glow-bg-surface, #2a2a2a);
+    color: var(--glow-accent-primary);
   }
 
   .font-size-group {

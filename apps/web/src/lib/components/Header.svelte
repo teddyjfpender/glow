@@ -39,13 +39,15 @@
   <div class="header-top">
     <div class="left">
       <!-- Glow Logo -->
-      <div class="logo">
-        <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="8" fill="var(--glow-accent-primary)" />
-          <path d="M14 12h12v4H18v20h8v4H14V12z" fill="white" />
-          <path d="M22 12h12v28H22v-4h8V16h-8v-4z" fill="white" opacity="0.7" />
+      <a href="/" class="logo-link" aria-label="Go to home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 100 141.42">
+          <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
+          <path fill="#424242" d="M75 0v25h25L75 0z"/>
+          <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+          <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+          <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff"/>
         </svg>
-      </div>
+      </a>
 
       <!-- Document Title -->
       <div class="title-section">
@@ -200,8 +202,24 @@
     gap: 8px;
   }
 
-  .logo {
+  .logo-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    text-decoration: none;
+    border-radius: 4px;
+    padding: 4px;
+    transition: opacity var(--glow-transition-fast), transform var(--glow-transition-fast);
+  }
+
+  .logo-link:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+
+  .logo-link:active {
+    transform: scale(0.98);
   }
 
   .title-section {
@@ -235,11 +253,15 @@
     font-weight: 400;
     color: var(--glow-text-primary);
     background-color: var(--glow-bg-elevated);
-    border: 2px solid var(--glow-accent-primary);
+    border: 1px solid #505050;
     padding: 4px 8px;
     border-radius: 4px;
     outline: none;
     width: 300px;
+  }
+
+  .title-input:focus {
+    border-color: #707070;
   }
 
   .icon-button {
@@ -250,7 +272,7 @@
     height: 28px;
     border: none;
     background: none;
-    color: var(--glow-text-tertiary);
+    color: #757575;
     border-radius: 4px;
     cursor: pointer;
     transition:
@@ -260,7 +282,7 @@
 
   .icon-button:hover {
     background-color: var(--glow-bg-elevated);
-    color: var(--glow-text-primary);
+    color: #9e9e9e;
   }
 
   .icon-button-large {
@@ -271,14 +293,17 @@
     height: 36px;
     border: none;
     background: none;
-    color: var(--glow-text-secondary);
+    color: #757575;
     border-radius: 50%;
     cursor: pointer;
-    transition: background-color var(--glow-transition-fast);
+    transition:
+      background-color var(--glow-transition-fast),
+      color var(--glow-transition-fast);
   }
 
   .icon-button-large:hover {
     background-color: var(--glow-bg-elevated);
+    color: #9e9e9e;
   }
 
   .save-status {
@@ -293,21 +318,24 @@
     gap: 8px;
     font-size: 14px;
     font-weight: 500;
-    color: #1a1a2e;
-    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
-    border: none;
+    color: var(--glow-text-primary);
+    background-color: var(--glow-bg-elevated);
+    border: 1px solid #505050;
     padding: 8px 20px;
     border-radius: 20px;
     cursor: pointer;
-    transition: box-shadow var(--glow-transition-fast);
+    transition:
+      background-color var(--glow-transition-fast),
+      border-color var(--glow-transition-fast);
   }
 
   .share-button:hover {
-    box-shadow: 0 2px 8px rgb(56 189 248 / 0.4);
+    background-color: #3a3a3a;
+    border-color: #606060;
   }
 
   .share-button svg {
-    stroke: #1a1a2e;
+    stroke: var(--glow-text-secondary);
   }
 
   .avatar {
@@ -317,11 +345,16 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
+    background-color: #505050;
+    color: var(--glow-text-secondary);
     font-size: 16px;
     font-weight: 500;
     border: none;
     cursor: pointer;
+    transition: background-color var(--glow-transition-fast);
+  }
+
+  .avatar:hover {
+    background-color: #606060;
   }
 </style>

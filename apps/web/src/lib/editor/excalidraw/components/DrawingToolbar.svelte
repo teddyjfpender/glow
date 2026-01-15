@@ -52,6 +52,8 @@
 
   let showStrokeColorPicker = $state(false);
   let showFillColorPicker = $state(false);
+  let showStrokeStyleDropdown = $state(false);
+  let strokeStyleDropdownRef: HTMLDivElement | null = $state(null);
 
   // Get current values from state
   let activeTool = $derived(drawingEditorState.activeTool);
@@ -95,7 +97,25 @@
   function setStrokeStyleValue(style: StrokeStyle): void {
     drawingToolState.setStrokeStyle(style);
     syncToolToExcalidraw();
+    showStrokeStyleDropdown = false;
   }
+
+  function toggleStrokeStyleDropdown(): void {
+    showStrokeStyleDropdown = !showStrokeStyleDropdown;
+    showStrokeColorPicker = false;
+    showFillColorPicker = false;
+  }
+
+  function handleClickOutsideStrokeStyle(event: MouseEvent): void {
+    if (strokeStyleDropdownRef && !strokeStyleDropdownRef.contains(event.target as Node)) {
+      showStrokeStyleDropdown = false;
+    }
+  }
+
+  // Get current stroke style label
+  let currentStrokeStyleLabel = $derived(
+    STROKE_STYLES.find(s => s.value === strokeStyle)?.label || 'Solid'
+  );
 
   function handleDone(): void {
     drawingEditorState.closeDrawing();
@@ -120,7 +140,7 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onclick={handleClickOutsideStrokeStyle} />
 
 {#if drawingEditorState.isActive}
   <div class="drawing-toolbar" role="toolbar" aria-label="Drawing tools">
@@ -272,15 +292,35 @@
     </div>
 
     <!-- Stroke Style -->
-    <select
-      class="stroke-style-select"
-      value={strokeStyle}
-      onchange={(e) => setStrokeStyleValue((e.target as HTMLSelectElement).value as StrokeStyle)}
-    >
-      {#each STROKE_STYLES as style}
-        <option value={style.value}>{style.label}</option>
-      {/each}
-    </select>
+    <div class="stroke-style-container" bind:this={strokeStyleDropdownRef}>
+      <button
+        class="stroke-style-btn"
+        onclick={toggleStrokeStyleDropdown}
+        title="Stroke style"
+        aria-expanded={showStrokeStyleDropdown}
+        aria-haspopup="listbox"
+      >
+        <span class="stroke-style-label">{currentStrokeStyleLabel}</span>
+        <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      {#if showStrokeStyleDropdown}
+        <div class="stroke-style-dropdown" role="listbox">
+          {#each STROKE_STYLES as style}
+            <button
+              class="stroke-style-option"
+              class:selected={strokeStyle === style.value}
+              onclick={() => setStrokeStyleValue(style.value)}
+              role="option"
+              aria-selected={strokeStyle === style.value}
+            >
+              {style.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
 
     <div class="spacer"></div>
 
@@ -469,23 +509,79 @@
     border-radius: 1px;
   }
 
-  /* Stroke Style */
-  .stroke-style-select {
+  /* Stroke Style Dropdown */
+  .stroke-style-container {
+    position: relative;
+  }
+
+  .stroke-style-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 4px 8px;
     font-size: 12px;
     color: var(--glow-text-primary, #e0e0e0);
-    background-color: var(--glow-bg-surface, #1e1e2e);
+    background-color: var(--glow-bg-elevated, #252536);
     border: 1px solid var(--glow-border-subtle, #3a3a4a);
     border-radius: 6px;
     cursor: pointer;
+    transition: all 0.15s;
   }
 
-  .stroke-style-select:hover {
+  .stroke-style-btn:hover {
     border-color: var(--glow-border-default, #4a4a5a);
+    background-color: #2a2a3c;
   }
 
-  .stroke-style-select option {
+  .stroke-style-label {
+    min-width: 48px;
+    text-align: left;
+  }
+
+  .dropdown-arrow {
+    width: 12px;
+    height: 12px;
+    color: var(--glow-text-secondary, #a0a0b0);
+  }
+
+  .stroke-style-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 100%;
+    background-color: var(--glow-bg-elevated, #252536);
+    border: 1px solid var(--glow-border-subtle, #3a3a4a);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    z-index: 100;
+  }
+
+  .stroke-style-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--glow-text-primary, #e0e0e0);
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .stroke-style-option:hover {
     background-color: var(--glow-bg-surface, #1e1e2e);
+  }
+
+  .stroke-style-option.selected {
+    background-color: var(--glow-accent, #3b82f6);
+    color: white;
+  }
+
+  .stroke-style-option.selected:hover {
+    background-color: #2563eb;
   }
 
   /* Done Button */

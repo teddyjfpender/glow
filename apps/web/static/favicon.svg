@@ -1,4 +1,8 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="16" cy="16" r="14" fill="#6366F1"/>
-  <circle cx="16" cy="16" r="6" fill="#0D0D0D"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 100 141.42">
+  <title>Glow Document Icon</title>
+  <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
+  <path fill="#424242" d="M75 0v25h25L75 0z"/>
+  <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+  <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+  <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff"/>
 </svg>

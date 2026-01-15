@@ -12,14 +12,12 @@
 <header class="home-header">
   <div class="header-content">
     <a href="/" class="logo">
-      <svg viewBox="0 0 24 24" class="logo-icon">
-        <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" opacity="0.2" />
-        <path
-          d="M7 8h10M7 12h10M7 16h6"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 100 141.42" class="logo-icon">
+        <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
+        <path fill="#424242" d="M75 0v25h25L75 0z"/>
+        <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+        <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+        <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff"/>
       </svg>
       <span class="logo-text">Glow</span>
     </a>
@@ -57,7 +55,7 @@
 <style>
   .home-header {
     height: 64px;
-    background-color: var(--glow-bg-surface);
+    background-color: transparent;
     border-bottom: 1px solid var(--glow-border-subtle);
     display: flex;
     align-items: center;
@@ -82,15 +80,15 @@
   }
 
   .logo-icon {
-    width: 40px;
-    height: 40px;
-    color: var(--glow-accent);
+    width: 28px;
+    height: 28px;
   }
 
   .logo-text {
     font-size: 22px;
     font-weight: 500;
     letter-spacing: -0.5px;
+    color: #a0a0a0;
   }
 
   .search-container {
