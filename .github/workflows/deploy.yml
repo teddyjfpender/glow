@@ -36,6 +36,9 @@ jobs:
           BASE_PATH: /glow
         run: bun run --filter @glow/web build
 
+      - name: Create 404.html for SPA routing
+        run: cp apps/web/build/index.html apps/web/build/404.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
