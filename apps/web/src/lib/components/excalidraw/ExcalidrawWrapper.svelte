@@ -440,14 +440,15 @@
     pointer-events: auto !important;
   }
 
-  /* Remove ALL white borders and backgrounds */
+  /* Remove borders - let Excalidraw's native dark mode filter handle backgrounds.
+   * DO NOT set background colors here - the dark mode filter inverts colors,
+   * so setting dark backgrounds would result in light appearance. */
   :global(.excalidraw-wrapper .excalidraw),
   :global(.excalidraw-wrapper .excalidraw-container),
   :global(.excalidraw-wrapper .excalidraw .excalidraw-container),
   :global(.excalidraw-react-container > div),
   :global(.excalidraw-react-container > div > div) {
     border: none !important;
-    background: #1e1e2e !important;
     border-radius: 8px !important;
   }
 
@@ -457,13 +458,7 @@
   }
 
   :global(.excalidraw-wrapper .excalidraw .App-bottom-bar) {
-    background: #1e1e2e !important;
     border: none !important;
-  }
-
-  :global(.excalidraw-wrapper .excalidraw .Island) {
-    background: #252536 !important;
-    border: 1px solid #3a3a4a !important;
   }
 
   /* Fix the main layer wrapper that has the white background */
@@ -476,19 +471,6 @@
     background: transparent !important;
   }
 
-  /* Remove scrollbar backgrounds */
-  :global(.excalidraw-wrapper .excalidraw ::-webkit-scrollbar) {
-    background: #1e1e2e !important;
-  }
-
-  :global(.excalidraw-wrapper .excalidraw ::-webkit-scrollbar-track) {
-    background: #1e1e2e !important;
-  }
-
-  :global(.excalidraw-wrapper .excalidraw ::-webkit-scrollbar-thumb) {
-    background: #3a3a4a !important;
-  }
-
   /* Remove any remaining white backgrounds */
   :global(.excalidraw-wrapper .excalidraw > div) {
     background: transparent !important;
@@ -496,13 +478,6 @@
 
   /* Target the main excalidraw container borders only */
   :global(.excalidraw-wrapper > .excalidraw-react-container > div) {
-    border: none !important;
-  }
-
-  /* Specifically target the main canvas area wrapper */
-  :global(.excalidraw-wrapper .excalidraw__canvas-wrapper),
-  :global(.excalidraw-wrapper [class*="canvas"]) {
-    background: #1e1e2e !important;
     border: none !important;
   }
 

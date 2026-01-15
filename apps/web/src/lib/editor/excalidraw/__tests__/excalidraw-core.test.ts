@@ -242,12 +242,14 @@ describe('Scene Utilities', () => {
       expect(scene.appState.theme).toBe('dark');
     });
 
-    it('should set dark background color for dark theme', () => {
+    it('should set white viewBackgroundColor for dark theme (filter inverts to dark)', () => {
       const scene = createEmptyScene('dark');
-      expect(scene.appState.viewBackgroundColor).toBe('#1e1e2e');
+      // Excalidraw's dark mode applies a CSS filter that inverts colors,
+      // so we use white which gets inverted to dark
+      expect(scene.appState.viewBackgroundColor).toBe('#ffffff');
     });
 
-    it('should set light background color for light theme', () => {
+    it('should set white viewBackgroundColor for light theme', () => {
       const scene = createEmptyScene('light');
       expect(scene.appState.viewBackgroundColor).toBe('#ffffff');
     });

@@ -70,7 +70,8 @@ export function createEmptyScene(theme: 'light' | 'dark' = 'dark'): ExcalidrawSc
     elements: [],
     appState: {
       theme,
-      viewBackgroundColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+      // Use #ffffff for live Excalidraw - its dark mode filter inverts this to dark
+      viewBackgroundColor: '#ffffff',
       zoom: { value: 1 },
       scrollX: 0,
       scrollY: 0,
@@ -161,8 +162,10 @@ export function getInitialData(scene: ExcalidrawScene, forceDarkTheme = true): {
     : new Map();
 
   // Determine theme and background color
+  // For the live Excalidraw component, use #ffffff for dark mode because
+  // Excalidraw applies a CSS filter (invert + hue-rotate) that inverts it to dark
   const theme = forceDarkTheme ? 'dark' : (appState.theme ?? 'dark');
-  const viewBackgroundColor = theme === 'dark' ? '#1e1e2e' : '#ffffff';
+  const viewBackgroundColor = '#ffffff';
 
   return {
     elements: scene.elements ?? [],

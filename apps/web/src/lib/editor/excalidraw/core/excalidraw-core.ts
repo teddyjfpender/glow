@@ -34,7 +34,9 @@ export function createEmptyScene(theme: Theme = 'dark'): ExcalidrawScene {
     elements: [],
     appState: {
       theme,
-      viewBackgroundColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+      // Use #ffffff for live Excalidraw - its dark mode filter inverts this to dark
+      // For exports, we use #070707ff directly with exportWithDarkMode: false
+      viewBackgroundColor: '#ffffff',
       zoom: { value: 1 },
       scrollX: 0,
       scrollY: 0,
@@ -516,7 +518,8 @@ export class ExcalidrawCore {
         ...appState,
         collaborators,
         theme: this.currentTheme,
-        viewBackgroundColor: this.currentTheme === 'dark' ? '#1e1e2e' : '#ffffff',
+        // Use #ffffff - Excalidraw's dark mode filter inverts this to dark
+        viewBackgroundColor: '#ffffff',
       },
       files: scene.files ?? {},
     };
@@ -653,7 +656,8 @@ export class ExcalidrawCore {
       this.api.updateScene({
         appState: {
           theme,
-          viewBackgroundColor: theme === 'dark' ? '#1e1e2e' : '#ffffff',
+          // Use #ffffff - Excalidraw's dark mode filter inverts this to dark
+          viewBackgroundColor: '#ffffff',
         },
       });
     }
@@ -723,16 +727,18 @@ export async function generatePreviewSvg(
       return null;
     }
 
+    const effectiveTheme = options.theme ?? (scene.appState.theme as Theme) ?? 'dark';
+
     const svg = await exportToSvg({
       elements: visibleElements,
       appState: {
         ...scene.appState,
-        theme: options.theme ?? (scene.appState.theme as Theme) ?? 'dark',
-        exportWithDarkMode: (options.theme ?? scene.appState.theme) === 'dark',
+        theme: effectiveTheme,
+        // Don't apply dark mode filter for export - use colors directly
+        // since we're specifying the exact background color we want
+        exportWithDarkMode: false,
         exportBackground: true,
-        viewBackgroundColor: (options.theme ?? scene.appState.theme) === 'dark'
-          ? '#1e1e2e'
-          : '#ffffff',
+        viewBackgroundColor: effectiveTheme === 'dark' ? '#070707ff' : '#ffffff',
       },
       files: scene.files,
       exportPadding: options.padding ?? 16,
