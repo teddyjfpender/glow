@@ -59,7 +59,9 @@
   </aside>
 
   <main class="docs-content">
-    <slot />
+    <div class="docs-content-inner">
+      <slot />
+    </div>
   </main>
 </div>
 
@@ -163,9 +165,12 @@
   .docs-content {
     flex: 1;
     margin-left: 260px;
-    padding: 48px 64px;
-    max-width: 900px;
     overflow-y: auto;
+  }
+
+  .docs-content-inner {
+    max-width: 800px;
+    padding: 48px 64px;
   }
 
   /* Responsive */
@@ -184,6 +189,9 @@
 
     .docs-content {
       margin-left: 0;
+    }
+
+    .docs-content-inner {
       padding: 32px 24px;
     }
   }
