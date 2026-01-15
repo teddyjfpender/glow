@@ -25,13 +25,47 @@
   // Zoom options
   const zoomOptions = [50, 75, 100, 125, 150, 200];
 
+  // Color palettes
+  const textColors = [
+    { name: 'Default', value: '' },
+    { name: 'Red', value: '#ef4444' },
+    { name: 'Orange', value: '#f97316' },
+    { name: 'Yellow', value: '#eab308' },
+    { name: 'Green', value: '#22c55e' },
+    { name: 'Blue', value: '#3b82f6' },
+    { name: 'Purple', value: '#a855f7' },
+    { name: 'Pink', value: '#ec4899' },
+    { name: 'Gray', value: '#6b7280' },
+    { name: 'White', value: '#ffffff' },
+  ];
+
+  const highlightColors = [
+    { name: 'None', value: '' },
+    { name: 'Yellow', value: '#fef08a' },
+    { name: 'Green', value: '#bbf7d0' },
+    { name: 'Blue', value: '#bfdbfe' },
+    { name: 'Purple', value: '#e9d5ff' },
+    { name: 'Pink', value: '#fbcfe8' },
+    { name: 'Red', value: '#fecaca' },
+    { name: 'Orange', value: '#fed7aa' },
+    { name: 'Cyan', value: '#a5f3fc' },
+    { name: 'Gray', value: '#e5e7eb' },
+  ];
+
   let currentFont = $state('Arial');
   let currentSize = $state(11);
   let currentStyle = $state('Normal text');
   let zoom = $state(100);
+  let currentTextColor = $state('#ef4444');
+  let currentHighlightColor = $state('#fef08a');
 
   // Dropdown state management
   let activeDropdown = $state<string | null>(null);
+
+  // Link dialog state
+  let showLinkDialog = $state(false);
+  let linkUrl = $state('');
+  let linkInputRef = $state<HTMLInputElement | null>(null);
 
   function toggleDropdown(name: string): void {
     if (activeDropdown === name) {
@@ -43,6 +77,60 @@
 
   function closeDropdowns(): void {
     activeDropdown = null;
+  }
+
+  function openLinkDialog(): void {
+    if (editor === null) return;
+
+    // Pre-populate with existing link if there is one
+    const linkAttributes = editor.getAttributes('link') as { href?: string };
+    const existingLink = linkAttributes.href;
+    linkUrl = existingLink ?? '';
+    showLinkDialog = true;
+
+    // Focus the input after the dialog is shown
+    setTimeout(() => {
+      linkInputRef?.focus();
+      linkInputRef?.select();
+    }, 10);
+  }
+
+  function closeLinkDialog(): void {
+    showLinkDialog = false;
+    linkUrl = '';
+  }
+
+  function setLink(): void {
+    if (editor === null) return;
+
+    const url = linkUrl.trim();
+
+    if (url === '') {
+      // Remove the link if URL is empty
+      editor.chain().focus().unsetLink().run();
+    } else {
+      // Ensure URL has a protocol
+      const finalUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+      editor.chain().focus().setLink({ href: finalUrl }).run();
+    }
+
+    closeLinkDialog();
+  }
+
+  function removeLink(): void {
+    if (editor === null) return;
+    editor.chain().focus().unsetLink().run();
+    closeLinkDialog();
+  }
+
+  function handleLinkKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setLink();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      closeLinkDialog();
+    }
   }
 
   function selectZoom(value: number): void {
@@ -59,6 +147,8 @@
   function selectFont(font: string): void {
     currentFont = font;
     activeDropdown = null;
+    if (editor === null) return;
+    editor.chain().focus().setFontFamily(font).run();
   }
 
   function runCommand(command: string): void {
@@ -113,7 +203,7 @@
         // TipTap doesn't have outdent by default
         break;
       case 'link':
-        // Will implement link dialog
+        openLinkDialog();
         break;
       case 'horizontalRule':
         chain.setHorizontalRule().run();
@@ -176,15 +266,23 @@
         return editor.isActive({ textAlign: 'right' });
       case 'alignJustify':
         return editor.isActive({ textAlign: 'justify' });
+      case 'link':
+        return editor.isActive('link');
       default:
         return false;
     }
+  }
+
+  function applyFontSize(size: number): void {
+    if (editor === null) return;
+    editor.chain().focus().setFontSize(`${size.toString()}pt`).run();
   }
 
   function decreaseFontSize(): void {
     const idx = fontSizes.indexOf(currentSize);
     if (idx > 0) {
       currentSize = fontSizes[idx - 1];
+      applyFontSize(currentSize);
     }
   }
 
@@ -192,7 +290,52 @@
     const idx = fontSizes.indexOf(currentSize);
     if (idx < fontSizes.length - 1) {
       currentSize = fontSizes[idx + 1];
+      applyFontSize(currentSize);
     }
+  }
+
+  function handleFontSizeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseInt(input.value, 10);
+    if (!isNaN(value) && value > 0 && value <= 400) {
+      currentSize = value;
+      applyFontSize(value);
+    }
+  }
+
+  function handleFontSizeKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const input = event.target as HTMLInputElement;
+      const value = parseInt(input.value, 10);
+      if (!isNaN(value) && value > 0 && value <= 400) {
+        currentSize = value;
+        applyFontSize(value);
+      }
+      input.blur();
+    }
+  }
+
+  function setTextColor(color: string): void {
+    if (editor === null) return;
+    if (color === '') {
+      editor.chain().focus().unsetColor().run();
+    } else {
+      currentTextColor = color;
+      editor.chain().focus().setColor(color).run();
+    }
+    activeDropdown = null;
+  }
+
+  function setHighlightColor(color: string): void {
+    if (editor === null) return;
+    if (color === '') {
+      editor.chain().focus().unsetHighlight().run();
+    } else {
+      currentHighlightColor = color;
+      editor.chain().focus().setHighlight({ color }).run();
+    }
+    activeDropdown = null;
   }
 </script>
 
@@ -426,7 +569,14 @@
         <line x1="5" y1="12" x2="19" y2="12" />
       </svg>
     </button>
-    <input type="text" class="font-size-input" bind:value={currentSize} aria-label="Font size" />
+    <input
+      type="text"
+      class="font-size-input"
+      bind:value={currentSize}
+      onchange={handleFontSizeInput}
+      onkeydown={handleFontSizeKeydown}
+      aria-label="Font size"
+    />
     <button
       class="tool-button small"
       onclick={increaseFontSize}
@@ -512,51 +662,186 @@
         <line x1="4" y1="21" x2="20" y2="21" />
       </svg>
     </button>
-    <button class="tool-button" title="Text color" aria-label="Text color">
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+    <!-- Text Color Picker -->
+    <div class="dropdown-container">
+      <button
+        class="tool-button"
+        class:active={activeDropdown === 'textColor'}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleDropdown('textColor');
+        }}
+        title="Text color"
+        aria-label="Text color"
+        aria-haspopup="true"
+        aria-expanded={activeDropdown === 'textColor'}
       >
-        <path d="M4 20h16" stroke="#ef4444" stroke-width="4" />
-        <path d="M12 4L7 16h2l1-3h4l1 3h2L12 4z" />
-      </svg>
-    </button>
-    <button class="tool-button" title="Highlight color" aria-label="Highlight color">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="14" width="18" height="6" rx="1" fill="#fbbf24" />
-        <path d="M15.5 4l-8 8 3 3 8-8-3-3z" stroke="currentColor" stroke-width="2" />
-      </svg>
-    </button>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M4 20h16" stroke={currentTextColor} stroke-width="4" />
+          <path d="M12 4L7 16h2l1-3h4l1 3h2L12 4z" />
+        </svg>
+      </button>
+      {#if activeDropdown === 'textColor'}
+        <div
+          class="color-picker-popup"
+          role="menu"
+          tabindex="-1"
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => {
+            if (e.key === 'Escape') closeDropdowns();
+          }}
+        >
+          <div class="color-picker-header">Text Color</div>
+          <div class="color-picker-grid">
+            {#each textColors as color}
+              <button
+                class="color-swatch"
+                class:selected={color.value === '' ? !currentTextColor : currentTextColor === color.value}
+                style="background-color: {color.value || 'var(--glow-text-primary)'}"
+                onclick={() => setTextColor(color.value)}
+                title={color.name}
+                aria-label={color.name}
+              >
+                {#if color.value === ''}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="4" x2="20" y2="20" />
+                  </svg>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    </div>
+    <!-- Highlight Color Picker -->
+    <div class="dropdown-container">
+      <button
+        class="tool-button"
+        class:active={activeDropdown === 'highlightColor'}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleDropdown('highlightColor');
+        }}
+        title="Highlight color"
+        aria-label="Highlight color"
+        aria-haspopup="true"
+        aria-expanded={activeDropdown === 'highlightColor'}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="14" width="18" height="6" rx="1" fill={currentHighlightColor} />
+          <path d="M15.5 4l-8 8 3 3 8-8-3-3z" stroke="currentColor" stroke-width="2" />
+        </svg>
+      </button>
+      {#if activeDropdown === 'highlightColor'}
+        <div
+          class="color-picker-popup"
+          role="menu"
+          tabindex="-1"
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => {
+            if (e.key === 'Escape') closeDropdowns();
+          }}
+        >
+          <div class="color-picker-header">Highlight Color</div>
+          <div class="color-picker-grid">
+            {#each highlightColors as color}
+              <button
+                class="color-swatch"
+                class:selected={color.value === '' ? !currentHighlightColor : currentHighlightColor === color.value}
+                style="background-color: {color.value || '#333'}"
+                onclick={() => setHighlightColor(color.value)}
+                title={color.name}
+                aria-label={color.name}
+              >
+                {#if color.value === ''}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="4" x2="20" y2="20" />
+                  </svg>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="divider"></div>
 
   <!-- Links & Media -->
   <div class="tool-group">
-    <button
-      class="tool-button"
-      onclick={() => {
-        runCommand('link');
-      }}
-      title="Insert link (Ctrl+K)"
-      aria-label="Insert link"
-    >
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+    <div class="link-button-container">
+      <button
+        class="tool-button"
+        class:active={isActive('link')}
+        onclick={() => {
+          runCommand('link');
+        }}
+        title="Insert link (Ctrl+K)"
+        aria-label="Insert link"
       >
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-      </svg>
-    </button>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+      </button>
+
+      <!-- Link Dialog -->
+      {#if showLinkDialog}
+        <div class="link-dialog" onclick={(e) => e.stopPropagation()}>
+          <div class="link-dialog-header">
+            <span class="link-dialog-title">Insert Link</span>
+            <button
+              class="link-dialog-close"
+              onclick={closeLinkDialog}
+              aria-label="Close dialog"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+          <div class="link-dialog-content">
+            <input
+              type="text"
+              class="link-input"
+              placeholder="Enter URL..."
+              bind:value={linkUrl}
+              bind:this={linkInputRef}
+              onkeydown={handleLinkKeydown}
+            />
+          </div>
+          <div class="link-dialog-actions">
+            {#if isActive('link')}
+              <button class="link-btn link-btn-danger" onclick={removeLink}>
+                Remove
+              </button>
+            {/if}
+            <button class="link-btn link-btn-secondary" onclick={closeLinkDialog}>
+              Cancel
+            </button>
+            <button class="link-btn link-btn-primary" onclick={setLink}>
+              Apply
+            </button>
+          </div>
+        </div>
+      {/if}
+    </div>
     <button class="tool-button" title="Add comment" aria-label="Add comment">
       <svg
         width="18"
@@ -1018,5 +1303,192 @@
 
   .mode-button:hover {
     border-color: var(--glow-border-default);
+  }
+
+  /* Link button container and dialog */
+  .link-button-container {
+    position: relative;
+  }
+
+  .link-dialog {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    width: 300px;
+    background-color: #1a1a1a;
+    border: 1px solid #3a3a4a;
+    border-radius: 8px;
+    box-shadow:
+      0 4px 12px rgb(0 0 0 / 0.4),
+      0 2px 4px rgb(0 0 0 / 0.2);
+    z-index: 1001;
+  }
+
+  .link-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .link-dialog-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #e0e0e0;
+  }
+
+  .link-dialog-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #888;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  .link-dialog-close:hover {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+  }
+
+  .link-dialog-content {
+    padding: 12px 14px;
+  }
+
+  .link-input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #e0e0e0;
+    background-color: #0d0d0d;
+    border: 1px solid #3a3a4a;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .link-input::placeholder {
+    color: #666;
+  }
+
+  .link-input:focus {
+    border-color: var(--glow-accent-primary, #60a5fa);
+  }
+
+  .link-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 14px 12px;
+  }
+
+  .link-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+
+  .link-btn-primary {
+    background-color: var(--glow-accent-primary, #60a5fa);
+    border: 1px solid var(--glow-accent-primary, #60a5fa);
+    color: #000;
+  }
+
+  .link-btn-primary:hover {
+    background-color: var(--glow-accent-hover, #93c5fd);
+    border-color: var(--glow-accent-hover, #93c5fd);
+  }
+
+  .link-btn-secondary {
+    background-color: transparent;
+    border: 1px solid #3a3a4a;
+    color: #e0e0e0;
+  }
+
+  .link-btn-secondary:hover {
+    background-color: #2a2a2a;
+    border-color: #4a4a5a;
+  }
+
+  .link-btn-danger {
+    background-color: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+  }
+
+  .link-btn-danger:hover {
+    background-color: #ef4444;
+    color: #fff;
+  }
+
+  /* Color Picker Styles */
+  .color-picker-popup {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    width: 180px;
+    background-color: #1a1a1a;
+    border: 1px solid #3a3a4a;
+    border-radius: 8px;
+    box-shadow:
+      0 4px 12px rgb(0 0 0 / 0.4),
+      0 2px 4px rgb(0 0 0 / 0.2);
+    z-index: 1001;
+    padding: 8px;
+  }
+
+  .color-picker-header {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+
+  .color-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .color-swatch:hover {
+    border-color: #666;
+    transform: scale(1.1);
+  }
+
+  .color-swatch.selected {
+    border-color: var(--glow-accent-primary, #60a5fa);
+  }
+
+  .color-swatch svg {
+    stroke: #888;
   }
 </style>

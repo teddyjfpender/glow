@@ -8,7 +8,6 @@
   import {
     drawingEditorState,
     drawingToolState,
-    excalidrawAPIRegistry,
     syncToolToExcalidraw,
     handleToolShortcut,
     STROKE_COLOR_PRESETS,
@@ -56,12 +55,12 @@
   let strokeStyleDropdownRef: HTMLDivElement | null = $state(null);
 
   // Get current values from state
-  let activeTool = $derived(drawingEditorState.activeTool);
-  let isToolLocked = $derived(drawingEditorState.isToolLocked);
-  let strokeColor = $derived(drawingToolState.strokeColor);
-  let backgroundColor = $derived(drawingToolState.backgroundColor);
-  let strokeWidth = $derived(drawingToolState.strokeWidth);
-  let strokeStyle = $derived(drawingToolState.strokeStyle);
+  const activeTool = $derived(drawingEditorState.activeTool);
+  const isToolLocked = $derived(drawingEditorState.isToolLocked);
+  const strokeColor = $derived(drawingToolState.strokeColor);
+  const backgroundColor = $derived(drawingToolState.backgroundColor);
+  const strokeWidth = $derived(drawingToolState.strokeWidth);
+  const strokeStyle = $derived(drawingToolState.strokeStyle);
 
   // ============================================================================
   // Actions
@@ -113,7 +112,7 @@
   }
 
   // Get current stroke style label
-  let currentStrokeStyleLabel = $derived(
+  const currentStrokeStyleLabel = $derived(
     STROKE_STYLES.find(s => s.value === strokeStyle)?.label || 'Solid'
   );
 

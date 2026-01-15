@@ -5,6 +5,12 @@
   import Placeholder from '@tiptap/extension-placeholder';
   import Underline from '@tiptap/extension-underline';
   import TextAlign from '@tiptap/extension-text-align';
+  import TextStyle from '@tiptap/extension-text-style';
+  import Color from '@tiptap/extension-color';
+  import Highlight from '@tiptap/extension-highlight';
+  import FontFamily from '@tiptap/extension-font-family';
+  import Link from '@tiptap/extension-link';
+  import { FontSize } from '$lib/editor/extensions/font-size';
   import { ExcalidrawExtension } from '$lib/editor/extensions/excalidraw';
   import Toolbar from './Toolbar.svelte';
   import { documentState } from '$lib/state/document.svelte';
@@ -54,6 +60,19 @@
         Underline,
         TextAlign.configure({
           types: ['heading', 'paragraph'],
+        }),
+        TextStyle,
+        Color,
+        Highlight.configure({
+          multicolor: true,
+        }),
+        FontFamily,
+        FontSize,
+        Link.configure({
+          openOnClick: false,
+          HTMLAttributes: {
+            class: 'editor-link',
+          },
         }),
         ExcalidrawExtension.configure({
           defaultTheme: 'dark',
@@ -291,5 +310,18 @@
 
   .editor :global(.document-content .excalidraw-node) {
     margin: 16px 0;
+  }
+
+  /* Link styles */
+  .editor :global(.document-content a),
+  .editor :global(.document-content .editor-link) {
+    color: var(--glow-accent-primary, #60a5fa);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .editor :global(.document-content a:hover),
+  .editor :global(.document-content .editor-link:hover) {
+    color: var(--glow-accent-hover, #93c5fd);
   }
 </style>
