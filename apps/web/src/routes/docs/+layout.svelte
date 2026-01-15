@@ -169,7 +169,8 @@
   }
 
   .docs-content-inner {
-    max-width: 800px;
+    width: 100%;
+    max-width: 1100px;
     padding: 48px 64px;
   }
 
