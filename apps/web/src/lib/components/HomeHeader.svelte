@@ -55,6 +55,13 @@
     </div>
 
     <div class="header-actions">
+      <a href="/docs" class="docs-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+        Docs
+      </a>
       <button class="new-doc-btn" onclick={handleNewDocument}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14M5 12h14" />
@@ -149,7 +156,30 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
+  }
+
+  .docs-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    color: var(--glow-text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: color 0.2s, background-color 0.2s;
+  }
+
+  .docs-link svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .docs-link:hover {
+    color: var(--glow-text-primary);
+    background-color: var(--glow-bg-elevated);
   }
 
   .new-doc-btn {
