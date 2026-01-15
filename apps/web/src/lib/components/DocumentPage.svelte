@@ -236,20 +236,41 @@
     line-height: 1.4;
   }
 
-  .editor :global(.document-content ul),
+  .editor :global(.document-content ul) {
+    margin: 0 0 12px 0;
+    padding-left: 24px;
+    color: var(--glow-text-primary);
+    list-style-type: disc !important;
+    list-style-position: outside;
+  }
+
   .editor :global(.document-content ol) {
     margin: 0 0 12px 0;
     padding-left: 24px;
     color: var(--glow-text-primary);
+    list-style-type: decimal !important;
+    list-style-position: outside;
   }
 
   .editor :global(.document-content li) {
     margin-bottom: 4px;
     color: var(--glow-text-primary);
+    display: list-item !important;
   }
 
   .editor :global(.document-content li::marker) {
     color: var(--glow-text-primary) !important;
+  }
+
+  /* Nested list styles */
+  .editor :global(.document-content ul ul),
+  .editor :global(.document-content ol ul) {
+    list-style-type: circle !important;
+  }
+
+  .editor :global(.document-content ul ul ul),
+  .editor :global(.document-content ol ul ul) {
+    list-style-type: square !important;
   }
 
   .editor :global(.document-content blockquote) {
