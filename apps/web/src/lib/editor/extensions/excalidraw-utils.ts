@@ -40,15 +40,13 @@ export interface ExcalidrawAppState {
   collaborators: Map<string, unknown>;
 }
 
-export interface ExcalidrawFiles {
-  [id: string]: {
+export type ExcalidrawFiles = Record<string, {
     mimeType: string;
     id: string;
     dataURL: string;
     created: number;
     lastRetrieved: number;
-  };
-}
+  }>;
 
 export interface ExcalidrawScene {
   type: 'excalidraw';

@@ -233,7 +233,7 @@ function mapInlineAnchor(anchor: InlineAnchor, tr: Transaction): InlineAnchor | 
 // ============================================================================
 
 export class AnchorManager {
-  private anchors: Map<string, DrawingAnchor> = new Map();
+  private anchors = new Map<string, DrawingAnchor>();
   private view: EditorView | null = null;
 
   /**
@@ -527,7 +527,7 @@ export function calculateSnapGuides(view: EditorView, pos: number): SnapGuide[] 
 export function findSnapPoint(
   value: number,
   guides: SnapGuide[],
-  threshold: number = 8
+  threshold = 8
 ): { guide: SnapGuide; snappedValue: number } | null {
   let nearest: { guide: SnapGuide; distance: number } | null = null;
 

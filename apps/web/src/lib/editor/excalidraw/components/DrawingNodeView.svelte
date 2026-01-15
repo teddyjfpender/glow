@@ -41,7 +41,7 @@
     onfinish?: () => void;
   }
 
-  let {
+  const {
     id,
     sceneData,
     width,
@@ -92,12 +92,12 @@
   let excalidrawCore: ExcalidrawCore | null = null;
 
   // Computed
-  let hasContent = $derived(
+  const hasContent = $derived(
     currentScene.elements.filter((el: ExcalidrawElement) => !el.isDeleted).length > 0
   );
-  let showEditor = $derived(isSelected);
-  let showPreview = $derived(!isSelected && hasContent);
-  let showEmpty = $derived(!isSelected && !hasContent);
+  const showEditor = $derived(isSelected);
+  const showPreview = $derived(!isSelected && hasContent);
+  const showEmpty = $derived(!isSelected && !hasContent);
 
   // ============================================================================
   // Lifecycle

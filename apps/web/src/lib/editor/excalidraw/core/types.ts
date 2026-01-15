@@ -50,7 +50,7 @@ export type ExcalidrawElementType =
 
 export type FillStyle = 'hachure' | 'cross-hatch' | 'solid' | 'zigzag';
 export type StrokeStyle = 'solid' | 'dashed' | 'dotted';
-export type Roundness = { type: 1 | 2 | 3; value?: number };
+export interface Roundness { type: 1 | 2 | 3; value?: number }
 
 export interface BoundElement {
   id: string;
@@ -130,9 +130,7 @@ export type ToolType =
 // Excalidraw Files Types
 // ============================================================================
 
-export interface ExcalidrawFiles {
-  [id: string]: BinaryFileData;
-}
+export type ExcalidrawFiles = Record<string, BinaryFileData>;
 
 export interface BinaryFileData {
   mimeType: string;

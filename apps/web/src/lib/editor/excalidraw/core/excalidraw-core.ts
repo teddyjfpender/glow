@@ -727,7 +727,7 @@ export async function generatePreviewSvg(
       return null;
     }
 
-    const effectiveTheme = options.theme ?? (scene.appState.theme as Theme) ?? 'dark';
+    const effectiveTheme = options.theme ?? (scene.appState.theme!) ?? 'dark';
     const isDark = effectiveTheme === 'dark';
 
     const svg = await exportToSvg({

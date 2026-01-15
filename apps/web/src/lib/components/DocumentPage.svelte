@@ -190,7 +190,7 @@
   .page {
     width: 816px;
     min-height: 1056px;
-    background-color: var(--glow-bg-base);
+    background-color: #121212;
     border-radius: 2px;
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.3),

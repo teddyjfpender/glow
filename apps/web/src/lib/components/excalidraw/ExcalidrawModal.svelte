@@ -24,7 +24,7 @@
     oncancel?: () => void;
   }
 
-  let { sceneData, theme = 'dark', onsave, oncancel }: Props = $props();
+  const { sceneData, theme = 'dark', onsave, oncancel }: Props = $props();
 
   // Initialize with empty scene - will be updated by effect
   let currentScene = $state<ExcalidrawScene>(createEmptyScene('dark'));

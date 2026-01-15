@@ -27,7 +27,7 @@
     onready?: () => void;
   }
 
-  let {
+  const {
     scene,
     theme = 'dark',
     viewModeEnabled = false,

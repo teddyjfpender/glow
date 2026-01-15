@@ -24,7 +24,7 @@
     onfinish?: () => void;
   }
 
-  let {
+  const {
     id,
     sceneData,
     width,
@@ -46,7 +46,7 @@
   let sceneInitialized = false;
 
   // Check if scene has content
-  let hasContent = $derived(currentScene.elements.filter(e => !e.isDeleted).length > 0);
+  const hasContent = $derived(currentScene.elements.filter(e => !e.isDeleted).length > 0);
 
   // ============================================================================
   // Initialization
@@ -80,7 +80,7 @@
     }
 
     try {
-      const svg = await generatePreviewSvg(currentScene, { theme, padding: 16 });
+      const svg = await generatePreviewSvg(currentScene, { theme, padding: 4 });
       if (svg) {
         previewSvg = svg.outerHTML;
       }
@@ -136,7 +136,6 @@
   class="excalidraw-node-view"
   class:empty={!hasContent}
   class:hovered={isHovered}
-  style="min-height: {Math.max(height, 150)}px;"
   onclick={handleClick}
   onkeydown={handleKeydown}
   onmouseenter={() => isHovered = true}
@@ -192,37 +191,36 @@
   .excalidraw-node-view {
     position: relative;
     background-color: transparent;
-    border: 1px solid var(--glow-border-subtle, #3a3a4a);
-    border-radius: 12px;
+    border-radius: 4px;
     cursor: pointer;
     transition:
       border-color 0.2s,
       box-shadow 0.2s,
       background-color 0.2s;
-    margin: 16px 0;
-    min-height: 150px;
-    display: flex;
+    margin: 8px 0;
+    display: inline-flex;
     flex-direction: column;
     overflow: hidden;
+    max-width: 100%;
   }
 
   .excalidraw-node-view:hover,
   .excalidraw-node-view.hovered {
-    border-color: var(--glow-accent, #3b82f6);
-    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 1px var(--glow-accent, #3b82f6);
   }
 
   .excalidraw-node-view:focus {
     outline: none;
-    border-color: var(--glow-accent, #3b82f6);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 2px var(--glow-accent, #3b82f6);
   }
 
   .excalidraw-node-view.empty {
-    border-style: dashed;
+    border: 1px dashed var(--glow-border-subtle, #3a3a4a);
     background-color: transparent;
     align-items: center;
     justify-content: center;
+    min-height: 120px;
+    min-width: 200px;
   }
 
   .excalidraw-node-view.empty:hover {
@@ -232,17 +230,14 @@
 
   /* Preview Container */
   .preview-container {
-    flex: 1;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    display: inline-block;
+    line-height: 0;
+    max-width: 100%;
   }
 
   .preview-container :global(svg) {
+    display: block;
     max-width: 100%;
-    max-height: 100%;
     height: auto;
   }
 

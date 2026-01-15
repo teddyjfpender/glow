@@ -54,7 +54,7 @@
     oncreate?: (sceneData: string, anchorData: string) => void;
   }
 
-  let {
+  const {
     editor,
     containerRef,
     theme = 'dark',
@@ -81,9 +81,9 @@
   let currentScene = $state<ExcalidrawScene>(createEmptyScene('dark'));
 
   // Derived state
-  let isOverlayActive = $derived(drawingEditorState.mode === 'overlay');
-  let isEditingExisting = $derived(drawingEditorState.isEditingExisting);
-  let hasElements = $derived(
+  const isOverlayActive = $derived(drawingEditorState.mode === 'overlay');
+  const isEditingExisting = $derived(drawingEditorState.isEditingExisting);
+  const hasElements = $derived(
     currentScene.elements.filter((el: ExcalidrawElement) => !el.isDeleted).length > 0
   );
 
