@@ -1,39 +1,3 @@
-<script lang="ts">
-  interface Feature {
-    title: string;
-    description: string;
-    icon: string;
-    href: string;
-  }
-
-  const features: Feature[] = [
-    {
-      title: 'Rich Text Editor',
-      description: 'Powerful editing with formatting, lists, code blocks, and more.',
-      icon: '📝',
-      href: '/docs/editor',
-    },
-    {
-      title: 'Integrated Drawing',
-      description: 'Create diagrams and sketches with Excalidraw built right in.',
-      icon: '✏️',
-      href: '/docs/drawing',
-    },
-    {
-      title: 'Keyboard First',
-      description: 'Navigate and edit efficiently with comprehensive shortcuts.',
-      icon: '⌨️',
-      href: '/docs/shortcuts',
-    },
-    {
-      title: 'Offline Ready',
-      description: 'Your notes are stored locally and work without internet.',
-      icon: '📴',
-      href: '/docs/getting-started',
-    },
-  ];
-</script>
-
 <article class="docs-page">
   <header class="docs-header">
     <h1>Glow Documentation</h1>
@@ -44,13 +8,61 @@
   </header>
 
   <section class="features-grid">
-    {#each features as feature}
-      <a href={feature.href} class="feature-card">
-        <span class="feature-icon">{feature.icon}</span>
-        <h3>{feature.title}</h3>
-        <p>{feature.description}</p>
-      </a>
-    {/each}
+    <a href="/docs/editor" class="feature-card">
+      <span class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      </span>
+      <h3>Rich Text Editor</h3>
+      <p>Powerful editing with formatting, lists, code blocks, and more.</p>
+    </a>
+
+    <a href="/docs/drawing" class="feature-card">
+      <span class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 19l7-7 3 3-7 7-3-3z" />
+          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+          <path d="M2 2l7.586 7.586" />
+          <circle cx="11" cy="11" r="2" />
+        </svg>
+      </span>
+      <h3>Integrated Drawing</h3>
+      <p>Create diagrams and sketches with Excalidraw built right in.</p>
+    </a>
+
+    <a href="/docs/shortcuts" class="feature-card">
+      <span class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="M6 8h.001" />
+          <path d="M10 8h.001" />
+          <path d="M14 8h.001" />
+          <path d="M18 8h.001" />
+          <path d="M8 12h.001" />
+          <path d="M12 12h.001" />
+          <path d="M16 12h.001" />
+          <path d="M7 16h10" />
+        </svg>
+      </span>
+      <h3>Keyboard First</h3>
+      <p>Navigate and edit efficiently with comprehensive shortcuts.</p>
+    </a>
+
+    <a href="/docs/getting-started" class="feature-card">
+      <span class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+      </span>
+      <h3>Offline Ready</h3>
+      <p>Your notes are stored locally and work without internet.</p>
+    </a>
   </section>
 
   <section class="quick-start">
@@ -133,9 +145,18 @@
   }
 
   .feature-icon {
-    font-size: 32px;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
     margin-bottom: 12px;
+    color: var(--glow-accent);
+  }
+
+  .feature-icon svg {
+    width: 32px;
+    height: 32px;
   }
 
   .feature-card h3 {

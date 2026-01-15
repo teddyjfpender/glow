@@ -66,8 +66,9 @@
 <style>
   .docs-layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     background-color: var(--glow-bg-base);
+    overflow: hidden;
   }
 
   .docs-sidebar {
@@ -164,6 +165,7 @@
     margin-left: 260px;
     padding: 48px 64px;
     max-width: 900px;
+    overflow-y: auto;
   }
 
   /* Responsive */
