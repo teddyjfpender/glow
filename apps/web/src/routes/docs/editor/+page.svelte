@@ -1,3 +1,11 @@
+<script lang="ts">
+  const codeBlockExample = `\`\`\`javascript
+function hello() {
+  console.log('Hello, world!');
+}
+\`\`\``;
+</script>
+
 <article class="docs-page">
   <header class="docs-header">
     <h1>Editor</h1>
@@ -108,11 +116,7 @@
       Type <code>```</code> followed by an optional language name to create a code block:
     </p>
     <div class="example-box">
-      <pre><code>```javascript
-function hello() {
-  console.log('Hello, world!');
-}
-```</code></pre>
+      <pre><code>{codeBlockExample}</code></pre>
     </div>
     <p>
       Syntax highlighting is supported for many programming languages including
