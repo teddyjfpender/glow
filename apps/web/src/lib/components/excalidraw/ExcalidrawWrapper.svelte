@@ -5,13 +5,13 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import type {
-    ExcalidrawScene,
-    ExcalidrawElement,
-    ExcalidrawAppState,
-    ExcalidrawFiles,
+  import {
+    getInitialData,
+    type ExcalidrawScene,
+    type ExcalidrawElement,
+    type ExcalidrawAppState,
+    type ExcalidrawFiles,
   } from '$lib/editor/extensions/excalidraw-utils';
-  import { getInitialData } from '$lib/editor/extensions/excalidraw-utils';
 
   interface Props {
     scene: ExcalidrawScene;
@@ -40,7 +40,7 @@
   let containerRef: HTMLDivElement;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let reactRoot: any = null;
-  let excalidrawAPI: unknown = null;
+  let _excalidrawAPI: unknown = null;
   let isLoaded = $state(false);
   let loadError = $state<string | null>(null);
 
@@ -101,7 +101,7 @@
         // Disable welcome screen entirely - this must be a top-level prop
         renderTopRightUI: () => null,
         excalidrawAPI: (api: unknown) => {
-          excalidrawAPI = api;
+          _excalidrawAPI = api;
           onready?.();
         },
         onChange: (
@@ -116,11 +116,10 @@
           );
         },
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       reactRoot.render(ReactModule.default.createElement(Excalidraw as any, excalidrawProps));
       isLoaded = true;
     } catch (error) {
-      console.error('[ExcalidrawWrapper] Error loading Excalidraw:', error);
       loadError = error instanceof Error ? error.message : 'Failed to load Excalidraw';
     }
   }
@@ -130,9 +129,10 @@
   });
 
   onDestroy(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     reactRoot?.unmount();
     reactRoot = null;
-    excalidrawAPI = null;
+    _excalidrawAPI = null;
   });
 
   // Store references for potential re-rendering
@@ -196,7 +196,7 @@
       },
       renderTopRightUI: () => null,
       excalidrawAPI: (api: unknown) => {
-        excalidrawAPI = api;
+        _excalidrawAPI = api;
         onready?.();
       },
       onChange: (
@@ -212,7 +212,8 @@
       },
     };
 
-    // @ts-ignore - React module default export
+    // @ts-expect-error - React module default export
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     reactRoot.render((React as any).default.createElement(Excalidraw, excalidrawProps));
   });
 </script>

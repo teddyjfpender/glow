@@ -2,8 +2,8 @@
  * Tests for Drawing Editor State Management
  * State management using Svelte 5 runes
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { DrawingMode, ToolType } from '../core/types';
+import { describe, it } from 'vitest';
+import type { DrawingMode as _DrawingMode, ToolType as _ToolType } from '../core/types';
 
 describe('DrawingEditorState', () => {
   describe('Initial State', () => {

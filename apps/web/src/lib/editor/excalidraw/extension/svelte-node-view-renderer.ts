@@ -6,8 +6,7 @@
 
 import type { NodeViewRendererProps } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import type { SvelteComponent } from 'svelte';
-import { mount, unmount } from 'svelte';
+import { mount, unmount, type SvelteComponent } from 'svelte';
 import {
   drawingEditorState,
   excalidrawAPIRegistry,
@@ -76,6 +75,7 @@ function createSvelteNodeView(
     const attrs = currentNode.attrs as Record<string, unknown>;
     const drawingId = attrs.id as string;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     svelteComponent = mount(component, {
       target: domElement,
       props: {
@@ -125,7 +125,7 @@ function createSvelteNodeView(
 
   function unmountComponent(): void {
     if (svelteComponent) {
-      unmount(svelteComponent as SvelteComponent);
+      void unmount(svelteComponent as SvelteComponent);
       svelteComponent = null;
     }
   }

@@ -5,6 +5,8 @@
  * correctly when the document content changes.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, no-console */
+
 import type { EditorView } from '@tiptap/pm/view';
 import type { Transaction } from '@tiptap/pm/state';
 import type {

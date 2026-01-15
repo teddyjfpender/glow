@@ -15,13 +15,12 @@
     createEmptyScene,
     generatePreviewSvg,
   } from '../core/excalidraw-core';
-  import type { ExcalidrawScene, Theme, ExcalidrawAPI, ExcalidrawChangeEvent } from '../core/types';
+  import type { ExcalidrawScene, Theme, ExcalidrawAPI, ExcalidrawChangeEvent, ExcalidrawElement } from '../core/types';
   import {
     drawingEditorState,
     excalidrawAPIRegistry,
     syncExcalidrawToTool,
   } from '../core/drawing-state.svelte';
-  import type { ExcalidrawElement } from '../core/types';
 
   // ============================================================================
   // Props
@@ -33,7 +32,6 @@
     width: number;
     height: number;
     theme?: Theme;
-    version?: number;
     selected?: boolean;
     editor?: Editor;
     onupdate?: (sceneData: string) => void;
@@ -44,11 +42,11 @@
   const {
     id,
     sceneData,
-    width,
+    width: _width,
     height,
     theme = 'dark',
     selected: initialSelected = false,
-    editor,
+    editor: _editor,
     onupdate,
     ondelete,
     onfinish,
@@ -119,7 +117,7 @@
             isSelected = newSelected;
 
             if (newSelected && !excalidrawCore) {
-              initializeExcalidraw();
+              void initializeExcalidraw();
             }
           }
         }
@@ -132,12 +130,12 @@
       isSelected = wrapper.getAttribute('data-selected') === 'true';
 
       if (isSelected) {
-        initializeExcalidraw();
+        void initializeExcalidraw();
       }
     }
 
     // Generate initial preview
-    generatePreview();
+    void generatePreview();
 
     return () => {
       observer.disconnect();
@@ -212,8 +210,7 @@
       if (svg) {
         previewSvg = svg.outerHTML;
       }
-    } catch (error) {
-      console.error('[DrawingNodeView] Failed to generate preview:', error);
+    } catch {
       previewSvg = null;
     }
   }
@@ -221,7 +218,7 @@
   // Regenerate preview when scene changes
   $effect(() => {
     if (!isSelected && hasContent) {
-      generatePreview();
+      void generatePreview();
     }
   });
 
@@ -236,7 +233,7 @@
     onupdate?.(serialized);
     hasUnsavedChanges = false;
     drawingEditorState.setUnsavedChanges(false);
-    generatePreview();
+    void generatePreview();
   }
 
   function saveAndClose(): void {
@@ -312,6 +309,7 @@
     <!-- Preview (when not selected and has content) -->
     {#if showPreview && previewSvg}
       <div class="preview-container">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted SVG from Excalidraw -->
         {@html previewSvg}
       </div>
     {/if}

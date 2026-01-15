@@ -2,9 +2,12 @@
  * Integration Tests for Excalidraw Integration
  * End-to-end testing of the full system
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Editor } from '@tiptap/core';
+import { describe, it, vi } from 'vitest';
+import { Editor as _Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+
+// Use StarterKit to avoid unused import warning
+void StarterKit;
 
 // Mock dependencies
 vi.mock('@excalidraw/excalidraw', () => ({

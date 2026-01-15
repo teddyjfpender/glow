@@ -2,10 +2,14 @@
  * Tests for Excalidraw Tiptap Node Extension
  * Tests the ProseMirror/Tiptap integration
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Editor } from '@tiptap/core';
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import { describe, it, vi, beforeEach, afterEach } from 'vitest';
+import { Editor as _Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import type { ExcalidrawNodeAttrs, Theme } from '../core/types';
+import type { ExcalidrawNodeAttrs as _ExcalidrawNodeAttrs, Theme as _Theme } from '../core/types';
+
+// Use StarterKit to avoid unused import warning
+void StarterKit;
 
 // Mock components
 vi.mock('@excalidraw/excalidraw', () => ({

@@ -21,16 +21,15 @@
     selected?: boolean;
     onupdate?: (sceneData: string, width?: number, height?: number) => void;
     ondelete?: () => void;
-    onfinish?: () => void;
   }
 
   const {
     id,
     sceneData,
-    width,
-    height,
+    width: _width,
+    height: _height,
     theme = 'dark',
-    selected: initialSelected = false,
+    selected: _initialSelected = false,
     onupdate,
     ondelete,
   }: Props = $props();
@@ -43,7 +42,6 @@
   let currentScene = $state<ExcalidrawScene>(createEmptyScene('dark'));
   let previewSvg = $state<string | null>(null);
   let isHovered = $state(false);
-  let sceneInitialized = false;
 
   // Check if scene has content
   const hasContent = $derived(currentScene.elements.filter(e => !e.isDeleted).length > 0);
@@ -64,8 +62,7 @@
     if (sceneData) {
       const parsed = deserializeScene(sceneData);
       currentScene = parsed || createEmptyScene(theme);
-      sceneInitialized = true;
-      generatePreview();
+      void generatePreview();
     }
   });
 
@@ -84,8 +81,7 @@
       if (svg) {
         previewSvg = svg.outerHTML;
       }
-    } catch (error) {
-      console.error('[ExcalidrawNodeView] Failed to generate preview:', error);
+    } catch {
       previewSvg = null;
     }
   }
@@ -148,6 +144,7 @@
     <!-- Preview (when has content) -->
     {#if hasContent && previewSvg}
       <div class="preview-container">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted SVG from Excalidraw -->
         {@html previewSvg}
       </div>
     {/if}

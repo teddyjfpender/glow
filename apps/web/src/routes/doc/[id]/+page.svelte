@@ -38,6 +38,7 @@
         }
         break;
       case 'Draw anywhere':
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         documentPageRef?.activateDrawAnywhere();
         break;
       case 'Word count':
@@ -56,6 +57,7 @@
     // Cmd/Ctrl+Shift+A to activate draw anywhere mode
     if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'a') {
       event.preventDefault();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       documentPageRef?.activateDrawAnywhere();
     }
   }

@@ -2,14 +2,15 @@
  * Tests for ExcalidrawCore - Headless Excalidraw Wrapper
  * Following TDD - write tests first, then implement
  */
+/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type {
-  ExcalidrawScene,
+  ExcalidrawScene as _ExcalidrawScene,
   ExcalidrawAPI,
   ExcalidrawElement,
   Theme,
   ToolType,
-  ExcalidrawChangeEvent,
+  ExcalidrawChangeEvent as _ExcalidrawChangeEvent,
 } from '../core/types';
 import {
   createEmptyScene,
@@ -45,14 +46,14 @@ vi.mock('react-dom/client', () => ({
 
 describe('ExcalidrawCore', () => {
   let container: HTMLDivElement;
-  let mockExcalidrawAPI: ExcalidrawAPI;
+  let _mockExcalidrawAPI: ExcalidrawAPI;
 
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
     // Mock Excalidraw API that would be provided by the component
-    mockExcalidrawAPI = {
+    _mockExcalidrawAPI = {
       updateScene: vi.fn(),
       getSceneElements: vi.fn(() => []),
       getAppState: vi.fn(() => ({

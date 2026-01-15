@@ -35,7 +35,7 @@
   import {
     createBlockAnchor,
     findNearestBlockPos,
-    anchorManager,
+    anchorManager as _anchorManager,
     serializeAnchor,
   } from '../anchors/anchor-system';
 
@@ -99,7 +99,6 @@
       if (event.key === 'Escape' && drawingEditorState.mode === 'overlay') {
         event.preventDefault();
         event.stopPropagation();
-        console.log('[DrawingOverlay] Escape pressed (capture), deactivating overlay');
         drawingEditorState.deactivateOverlay();
       }
     }
@@ -109,7 +108,7 @@
     const unsubscribe = $effect.root(() => {
       $effect(() => {
         if (isOverlayActive && !isInitialized && !isTransitioning) {
-          initializeOverlay();
+          void initializeOverlay();
         } else if (!isOverlayActive && isInitialized && !isTransitioning) {
           handleDeactivate();
         }
@@ -268,7 +267,6 @@
 
   function convertToAnchoredDrawing(): void {
     if (!editor) {
-      console.warn('[DrawingOverlay] No editor available for conversion');
       return;
     }
 

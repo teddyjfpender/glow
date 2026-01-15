@@ -2,18 +2,18 @@
  * Tests for Drawing Anchor System
  * Anchors allow drawings to move with document content
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, vi } from 'vitest';
 import type {
-  BlockAnchor,
-  RangeAnchor,
-  InlineAnchor,
-  DrawingAnchor,
-  Point,
-  Rect,
+  BlockAnchor as _BlockAnchor,
+  RangeAnchor as _RangeAnchor,
+  InlineAnchor as _InlineAnchor,
+  DrawingAnchor as _DrawingAnchor,
+  Point as _Point,
+  Rect as _Rect,
 } from '../core/types';
 
 // Mock ProseMirror - created in beforeEach to have access to DOM
-function createMockEditorView() {
+function _createMockEditorView() {
   return {
     state: {
       doc: {

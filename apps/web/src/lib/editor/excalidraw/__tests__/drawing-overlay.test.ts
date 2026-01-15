@@ -2,8 +2,9 @@
  * Tests for Drawing Overlay Component
  * The overlay enables "draw anywhere" functionality
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ToolType, Theme, ExcalidrawElement } from '../core/types';
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+import { describe, it, vi } from 'vitest';
+import type { ToolType as _ToolType, Theme as _Theme, ExcalidrawElement as _ExcalidrawElement } from '../core/types';
 
 // Mock Excalidraw
 vi.mock('@excalidraw/excalidraw', () => ({

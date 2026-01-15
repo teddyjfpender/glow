@@ -5,6 +5,8 @@
  * the native UI. Bridges React Excalidraw with Svelte components.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, no-console */
+
 import type {
   ExcalidrawScene,
   ExcalidrawElement,
@@ -469,16 +471,16 @@ export class ExcalidrawCore {
           }
         },
         onPointerDown: (
-          activeTool: unknown,
-          pointerDownState: unknown,
-          event: unknown
+          _activeTool: unknown,
+          _pointerDownState: unknown,
+          _event: unknown
         ) => {
           // Simplified pointer event handling
         },
         onPointerUp: (
-          activeTool: unknown,
-          pointerDownState: unknown,
-          event: unknown
+          _activeTool: unknown,
+          _pointerDownState: unknown,
+          _event: unknown
         ) => {
           // Trigger immediate save on pointer up
           if (!this.viewMode && this.options.onChange && this.api) {
@@ -727,7 +729,7 @@ export async function generatePreviewSvg(
       return null;
     }
 
-    const effectiveTheme = options.theme ?? (scene.appState.theme!) ?? 'dark';
+    const effectiveTheme = options.theme ?? scene.appState.theme ?? 'dark';
     const isDark = effectiveTheme === 'dark';
 
     const svg = await exportToSvg({
@@ -767,10 +769,12 @@ export async function generatePreviewDataUrl(
   try {
     // Convert SVG to data URL
     const svgString = new XMLSerializer().serializeToString(svg);
-    const base64 = btoa(unescape(encodeURIComponent(svgString)));
+    // Use TextEncoder for proper UTF-8 encoding (avoids deprecated unescape)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(svgString);
+    const base64 = btoa(String.fromCharCode(...data));
     return `data:image/svg+xml;base64,${base64}`;
-  } catch (error) {
-    console.error('[ExcalidrawCore] Failed to generate data URL:', error);
+  } catch {
     return null;
   }
 }

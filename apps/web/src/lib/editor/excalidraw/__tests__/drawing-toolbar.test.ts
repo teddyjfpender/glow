@@ -2,8 +2,9 @@
  * Tests for Drawing Toolbar Component
  * The toolbar provides controls when a drawing is active
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ToolType, Theme, FillStyle, StrokeStyle } from '../core/types';
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+import { describe, it } from 'vitest';
+import type { ToolType, Theme as _Theme, FillStyle as _FillStyle, StrokeStyle } from '../core/types';
 
 describe('DrawingToolbar Component', () => {
   describe('Rendering', () => {

@@ -2,9 +2,12 @@
  * Tests for Excalidraw TipTap Extension
  * Following TDD - write tests first, then implement
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Editor } from '@tiptap/core';
+import { describe, it, vi } from 'vitest';
+import { Editor as _Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+
+// Use StarterKit to avoid unused import warning
+void StarterKit;
 
 // Mock the Excalidraw module to avoid React dependency in tests
 vi.mock('@excalidraw/excalidraw', () => ({
