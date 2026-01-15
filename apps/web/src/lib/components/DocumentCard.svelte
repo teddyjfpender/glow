@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import type { StoredDocument } from '$lib/storage/db';
   import { documentsState } from '$lib/state/documents.svelte';
 
@@ -32,7 +33,7 @@
   }
 
   function handleClick(): void {
-    window.location.href = `/doc/${document.id}`;
+    window.location.href = resolve(`/doc/${document.id}`);
   }
 
   function handleMenuClick(event: MouseEvent): void {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { resolve } from '$app/paths';
   import HomeHeader from '$lib/components/HomeHeader.svelte';
   import DocumentCard from '$lib/components/DocumentCard.svelte';
   import { documentsState } from '$lib/state/documents.svelte';
@@ -29,7 +30,7 @@
 
   async function handleCreateDocument(): Promise<void> {
     const doc = await documentsState.create();
-    window.location.href = `/doc/${doc.id}`;
+    window.location.href = resolve(`/doc/${doc.id}`);
   }
 </script>
 
