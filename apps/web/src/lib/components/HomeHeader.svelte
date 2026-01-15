@@ -1,7 +1,19 @@
 <script lang="ts">
   import { documentsState } from '$lib/state/documents.svelte';
 
+  interface Props {
+    onSearch?: (query: string) => void;
+  }
+
+  let { onSearch }: Props = $props();
+
   let searchQuery = $state('');
+
+  function handleSearchInput(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    searchQuery = target.value;
+    onSearch?.(searchQuery);
+  }
 
   async function handleNewDocument(): Promise<void> {
     const doc = await documentsState.create();
@@ -37,7 +49,8 @@
         type="text"
         class="search-input"
         placeholder="Search documents"
-        bind:value={searchQuery}
+        value={searchQuery}
+        oninput={handleSearchInput}
       />
     </div>
 

@@ -4,6 +4,25 @@
   import DocumentCard from '$lib/components/DocumentCard.svelte';
   import { documentsState } from '$lib/state/documents.svelte';
 
+  let searchQuery = $state('');
+
+  // Filter documents based on search query
+  let filteredDocuments = $derived(() => {
+    if (!searchQuery.trim()) {
+      return documentsState.documents;
+    }
+    const query = searchQuery.toLowerCase().trim();
+    return documentsState.documents.filter((doc) => {
+      const titleMatch = doc.title.toLowerCase().includes(query);
+      const previewMatch = doc.previewText?.toLowerCase().includes(query) ?? false;
+      return titleMatch || previewMatch;
+    });
+  });
+
+  function handleSearch(query: string): void {
+    searchQuery = query;
+  }
+
   onMount(() => {
     void documentsState.load();
   });
@@ -15,7 +34,7 @@
 </script>
 
 <div class="home">
-  <HomeHeader />
+  <HomeHeader onSearch={handleSearch} />
 
   <main class="home-content">
     <div class="content-wrapper">
@@ -42,7 +61,13 @@
       <!-- Recent documents section -->
       <section class="section">
         <div class="section-header">
-          <h2 class="section-title">Recent documents</h2>
+          <h2 class="section-title">
+            {#if searchQuery.trim()}
+              Search results ({filteredDocuments().length})
+            {:else}
+              Recent documents
+            {/if}
+          </h2>
         </div>
 
         {#if documentsState.isLoading}
@@ -74,9 +99,18 @@
             <p>Create your first document to get started</p>
             <button class="create-btn" onclick={handleCreateDocument}> Create document </button>
           </div>
+        {:else if filteredDocuments().length === 0}
+          <div class="empty">
+            <svg viewBox="0 0 24 24" class="empty-icon">
+              <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M21 21l-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" />
+            </svg>
+            <h3>No results found</h3>
+            <p>No documents match "{searchQuery}"</p>
+          </div>
         {:else}
           <div class="documents-grid">
-            {#each documentsState.documents as doc (doc.id)}
+            {#each filteredDocuments() as doc (doc.id)}
               <DocumentCard document={doc} />
             {/each}
           </div>
