@@ -32,8 +32,7 @@
 
   // Page dimensions (US Letter at 96 DPI)
   const PAGE_HEIGHT = 1056;
-  const PAGE_GAP = 40; // Gap between pages
-  const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - 96 - 72; // minus padding top and bottom
+  const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - 96 - 72; // minus padding top (96) and bottom (72)
 
   let editorElement: HTMLDivElement;
   let documentAreaRef = $state<HTMLDivElement | null>(null);
@@ -43,6 +42,9 @@
 
   // Page count based on content height
   let pageCount = $state(1);
+
+  // Editor content HTML for page mirrors (non-editable pages)
+  let editorContent = $state('');
 
   // Cursor position for side toolbar
   let cursorTop = $state(100);
@@ -55,11 +57,15 @@
 
   // Calculate page count based on content height
   function updatePageCount(): void {
-    if (!pagesContentRef) return;
+    if (!pagesContentRef || !editor) return;
     const height = pagesContentRef.scrollHeight;
     // Calculate how many pages we need based on content height
     const pages = Math.max(1, Math.ceil(height / PAGE_CONTENT_HEIGHT));
     pageCount = pages;
+    // Update editor content HTML for page mirrors
+    if (pages > 1) {
+      editorContent = editor.getHTML();
+    }
   }
 
   // Update cursor position for side toolbar
@@ -501,29 +507,47 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="page-container">
-          <!-- Visual page backgrounds with gaps between them -->
-          <div class="pages-background">
-            {#each Array(pageCount) as _, index}
-              <div class="page-frame" style="top: {index * (PAGE_HEIGHT + PAGE_GAP)}px">
-                <span class="page-number-badge">Page {index + 1}</span>
+        <div class="pages-stack">
+          {#each Array(pageCount) as _, index}
+            <!-- Page frame with clipped content viewport -->
+            <div class="page-frame">
+              <div class="page-content-viewport">
+                <!-- Content shifted to show the correct portion for this page -->
+                <div
+                  class="page-content-shifter"
+                  class:is-editor-page={index === 0}
+                  style="transform: translateY(-{index * PAGE_CONTENT_HEIGHT}px)"
+                >
+                  {#if index === 0}
+                    <!-- First page contains the actual editor -->
+                    <div class="pages-content" bind:this={pagesContentRef}>
+                      <div class="editor" bind:this={editorElement}></div>
+                    </div>
+                  {:else}
+                    <!-- Other pages show a visual mirror of the content -->
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering editor content for pagination -->
+                    <div class="pages-content page-mirror">{@html editorContent}</div>
+                  {/if}
+                </div>
               </div>
-            {/each}
-          </div>
+              <span class="page-number-badge">Page {index + 1}</span>
+            </div>
 
-          <!-- Single continuous editor that flows across pages -->
-          <div class="pages-content" bind:this={pagesContentRef}>
-            <div class="editor" bind:this={editorElement}></div>
-          </div>
+            <!-- Gap between pages -->
+            {#if index < pageCount - 1}
+              <div class="page-gap"></div>
+            {/if}
+          {/each}
 
-          <!-- Side Toolbar follows cursor position -->
-          <SideToolbar
-            {hasSelection}
-            top={cursorTop}
-            onDraw={handleSideToolbarDraw}
-            onComment={handleSideToolbarComment}
-            onRSVPReader={handleSideToolbarRSVP}
-          />
+          <!-- Side Toolbar follows cursor position (positioned relative to first page) -->
+          <div class="side-toolbar-container" style="top: {cursorTop}px">
+            <SideToolbar
+              {hasSelection}
+              onDraw={handleSideToolbarDraw}
+              onComment={handleSideToolbarComment}
+              onRSVPReader={handleSideToolbarRSVP}
+            />
+          </div>
         </div>
 
         <!-- Floating comment cards positioned to the right of the page -->
@@ -643,26 +667,15 @@
     position: relative;
   }
 
-  .page-container {
+  .pages-stack {
+    display: flex;
+    flex-direction: column;
     position: relative;
-    width: 816px;
-    flex-shrink: 0;
-  }
-
-  /* Visual page frames container - positioned behind content */
-  .pages-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    pointer-events: none;
-    z-index: 0;
   }
 
   /* Individual page frame - creates the visual page card */
   .page-frame {
-    position: absolute;
-    left: 0;
+    position: relative;
     width: 816px;
     height: 1056px;
     background-color: #121212;
@@ -670,12 +683,35 @@
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.3),
       0 4px 12px rgb(0 0 0 / 0.2);
+    flex-shrink: 0;
+  }
+
+  /* Viewport that clips content to page boundaries */
+  .page-content-viewport {
+    position: absolute;
+    top: 96px; /* Header padding */
+    left: 96px;
+    right: 96px;
+    bottom: 72px; /* Footer padding */
+    overflow: hidden;
+  }
+
+  /* Shifts content to show the correct portion for each page */
+  .page-content-shifter {
+    position: relative;
+  }
+
+  /* Gap between pages */
+  .page-gap {
+    height: 40px;
+    width: 816px;
+    flex-shrink: 0;
   }
 
   /* Page number badge */
   .page-number-badge {
     position: absolute;
-    bottom: 16px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 11px;
@@ -683,16 +719,26 @@
     padding: 2px 12px;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.05);
+    z-index: 10;
   }
 
-  /* Content container - flows across visual pages */
+  /* Content container */
   .pages-content {
-    position: relative;
-    z-index: 1;
-    width: 816px;
-    padding: 96px 96px 72px;
-    /* Ensure minimum height of one page */
-    min-height: 1056px;
+    width: 624px; /* 816 - 96 - 96 = 624 */
+  }
+
+  /* Mirror pages (non-editable) */
+  .page-mirror {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Side toolbar container */
+  .side-toolbar-container {
+    position: absolute;
+    right: -28px;
+    z-index: 50;
+    transition: top 0.15s ease-out;
   }
 
   .comments-area {

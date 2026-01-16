@@ -1,7 +1,6 @@
 <script lang="ts">
   interface Props {
     hasSelection?: boolean;
-    top?: number;
     onDraw?: () => void;
     onComment?: () => void;
     onRSVPReader?: () => void;
@@ -9,14 +8,13 @@
 
   const {
     hasSelection = false,
-    top = 100,
     onDraw,
     onComment,
     onRSVPReader,
   }: Props = $props();
 </script>
 
-<div class="side-toolbar" role="toolbar" aria-label="Document tools" style="top: {top}px">
+<div class="side-toolbar" role="toolbar" aria-label="Document tools">
   <!-- Draw/Excalidraw button -->
   <button
     class="toolbar-button"
@@ -96,10 +94,6 @@
 
 <style>
   .side-toolbar {
-    position: absolute;
-    right: -28px;
-    /* top is set dynamically via style attribute */
-    transform: translateY(-50%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -111,8 +105,7 @@
     box-shadow:
       0 4px 6px -1px rgb(0 0 0 / 0.2),
       0 2px 4px -2px rgb(0 0 0 / 0.15);
-    z-index: 50;
-    transition: top 0.15s ease-out;
+    transform: translateY(-50%);
   }
 
   .toolbar-button {
