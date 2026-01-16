@@ -5,9 +5,10 @@
 
 import { browser } from '$app/environment';
 
-const DB_NAME = 'glow-docs';
-const DB_VERSION = 1;
+export const DB_NAME = 'glow-docs';
+export const DB_VERSION = 2;
 const STORE_NAME = 'documents';
+export const COMMENTS_STORE_NAME = 'comments';
 
 export interface StoredDocument {
   id: string;
@@ -20,7 +21,7 @@ export interface StoredDocument {
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
-function openDB(): Promise<IDBDatabase> {
+export function openDB(): Promise<IDBDatabase> {
   if (!browser) {
     return Promise.reject(new Error('IndexedDB is only available in browser'));
   }
@@ -43,10 +44,19 @@ function openDB(): Promise<IDBDatabase> {
     request.onupgradeneeded = (event): void => {
       const db = (event.target as IDBOpenDBRequest).result;
 
+      // Create documents store (version 1)
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         store.createIndex('modifiedAt', 'modifiedAt', { unique: false });
         store.createIndex('title', 'title', { unique: false });
+      }
+
+      // Create comments store (version 2)
+      if (!db.objectStoreNames.contains(COMMENTS_STORE_NAME)) {
+        const commentsStore = db.createObjectStore(COMMENTS_STORE_NAME, { keyPath: 'id' });
+        commentsStore.createIndex('documentId', 'documentId', { unique: false });
+        commentsStore.createIndex('resolved', 'resolved', { unique: false });
+        commentsStore.createIndex('createdAt', 'createdAt', { unique: false });
       }
     };
   });

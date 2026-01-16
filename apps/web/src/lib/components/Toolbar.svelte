@@ -1,11 +1,41 @@
 <script lang="ts">
   import type { Editor } from '@tiptap/core';
+  import { commentsState } from '$lib/state/comments.svelte';
 
   interface Props {
     editor: Editor | null;
   }
 
   const { editor }: Props = $props();
+
+  // Track selection state reactively
+  let hasSelection = $state(false);
+
+  // Update selection state when editor changes
+  $effect(() => {
+    if (!editor) {
+      hasSelection = false;
+      return;
+    }
+
+    // Initial check
+    const { from, to } = editor.state.selection;
+    hasSelection = from !== to;
+
+    // Listen for selection updates
+    const updateHandler = (): void => {
+      const { from, to } = editor.state.selection;
+      hasSelection = from !== to;
+    };
+
+    editor.on('selectionUpdate', updateHandler);
+    editor.on('transaction', updateHandler);
+
+    return () => {
+      editor.off('selectionUpdate', updateHandler);
+      editor.off('transaction', updateHandler);
+    };
+  });
 
   // Font families
   const fontFamilies = ['Arial', 'Times New Roman', 'Georgia', 'Verdana', 'Courier New', 'Inter'];
@@ -110,7 +140,8 @@
       editor.chain().focus().unsetLink().run();
     } else {
       // Ensure URL has a protocol
-      const finalUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+      const finalUrl =
+        url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
       editor.chain().focus().setLink({ href: finalUrl }).run();
     }
 
@@ -336,6 +367,29 @@
       editor.chain().focus().setHighlight({ color }).run();
     }
     activeDropdown = null;
+  }
+
+  function handleAddComment(): void {
+    if (editor === null) return;
+
+    const { from, to } = editor.state.selection;
+    if (from === to) {
+      // No text selected - optionally show a tooltip or message
+      return;
+    }
+
+    // Get selected text for quotedText
+    const selectedText = editor.state.doc.textBetween(from, to, ' ');
+
+    // Open the comment panel
+    commentsState.openPanel();
+
+    // Dispatch a custom event that DocumentPage will handle
+    const event = new CustomEvent('glow:create-comment', {
+      bubbles: true,
+      detail: { from, to, quotedText: selectedText },
+    });
+    editor.view.dom.dispatchEvent(event);
   }
 </script>
 
@@ -703,14 +757,23 @@
             {#each textColors as color}
               <button
                 class="color-swatch"
-                class:selected={color.value === '' ? !currentTextColor : currentTextColor === color.value}
+                class:selected={color.value === ''
+                  ? !currentTextColor
+                  : currentTextColor === color.value}
                 style="background-color: {color.value || 'var(--glow-text-primary)'}"
                 onclick={() => setTextColor(color.value)}
                 title={color.name}
                 aria-label={color.name}
               >
                 {#if color.value === ''}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <line x1="4" y1="4" x2="20" y2="20" />
                   </svg>
                 {/if}
@@ -754,14 +817,23 @@
             {#each highlightColors as color}
               <button
                 class="color-swatch"
-                class:selected={color.value === '' ? !currentHighlightColor : currentHighlightColor === color.value}
+                class:selected={color.value === ''
+                  ? !currentHighlightColor
+                  : currentHighlightColor === color.value}
                 style="background-color: {color.value || '#333'}"
                 onclick={() => setHighlightColor(color.value)}
                 title={color.name}
                 aria-label={color.name}
               >
                 {#if color.value === ''}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <line x1="4" y1="4" x2="20" y2="20" />
                   </svg>
                 {/if}
@@ -805,12 +877,15 @@
         <div class="link-dialog" onclick={(e) => e.stopPropagation()}>
           <div class="link-dialog-header">
             <span class="link-dialog-title">Insert Link</span>
-            <button
-              class="link-dialog-close"
-              onclick={closeLinkDialog}
-              aria-label="Close dialog"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="link-dialog-close" onclick={closeLinkDialog} aria-label="Close dialog">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -828,21 +903,22 @@
           </div>
           <div class="link-dialog-actions">
             {#if isActive('link')}
-              <button class="link-btn link-btn-danger" onclick={removeLink}>
-                Remove
-              </button>
+              <button class="link-btn link-btn-danger" onclick={removeLink}> Remove </button>
             {/if}
-            <button class="link-btn link-btn-secondary" onclick={closeLinkDialog}>
-              Cancel
-            </button>
-            <button class="link-btn link-btn-primary" onclick={setLink}>
-              Apply
-            </button>
+            <button class="link-btn link-btn-secondary" onclick={closeLinkDialog}> Cancel </button>
+            <button class="link-btn link-btn-primary" onclick={setLink}> Apply </button>
           </div>
         </div>
       {/if}
     </div>
-    <button class="tool-button" title="Add comment" aria-label="Add comment">
+    <button
+      class="tool-button"
+      class:disabled={!hasSelection}
+      onclick={handleAddComment}
+      disabled={!hasSelection}
+      title={hasSelection ? 'Add comment' : 'Select text to add a comment'}
+      aria-label="Add comment"
+    >
       <svg
         width="18"
         height="18"
@@ -1173,6 +1249,18 @@
     height: 24px;
   }
 
+  .tool-button.disabled,
+  .tool-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .tool-button.disabled:hover,
+  .tool-button:disabled:hover {
+    background-color: transparent;
+    color: var(--glow-text-secondary);
+  }
+
   .divider {
     width: 1px;
     height: 24px;
@@ -1352,7 +1440,9 @@
     color: #888;
     cursor: pointer;
     border-radius: 4px;
-    transition: background-color 0.15s, color 0.15s;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
   }
 
   .link-dialog-close:hover {
@@ -1397,7 +1487,9 @@
     font-weight: 500;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
   }
 
   .link-btn-primary {
@@ -1473,7 +1565,9 @@
     border-radius: 4px;
     border: 2px solid transparent;
     cursor: pointer;
-    transition: border-color 0.15s, transform 0.1s;
+    transition:
+      border-color 0.15s,
+      transform 0.1s;
     display: flex;
     align-items: center;
     justify-content: center;

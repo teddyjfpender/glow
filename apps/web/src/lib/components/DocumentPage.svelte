@@ -12,9 +12,13 @@
   import Link from '@tiptap/extension-link';
   import { FontSize } from '$lib/editor/extensions/font-size';
   import { ExcalidrawExtension } from '$lib/editor/extensions/excalidraw';
+  import { CommentMark } from '$lib/editor/extensions/comment-mark';
   import Toolbar from './Toolbar.svelte';
+  import { CommentCardsContainer } from '$lib/components/comments';
   import { documentState } from '$lib/state/document.svelte';
+  import { commentsState } from '$lib/state/comments.svelte';
   import { DrawingOverlay, drawingEditorState } from '$lib/editor/excalidraw';
+  import { createDefaultAuthor, type ReactionEmoji, type Comment } from '$lib/comments/types';
 
   interface Props {
     onEditorReady?: (editor: Editor) => void;
@@ -26,6 +30,9 @@
   let documentAreaRef = $state<HTMLDivElement | null>(null);
   let editor: Editor | null = $state(null);
   let lastSyncedContent = '';
+
+  // Comment system state
+  const currentAuthor = createDefaultAuthor();
 
   // Expose function to activate draw-anywhere mode
   export function activateDrawAnywhere(): void {
@@ -44,6 +51,227 @@
       lastSyncedContent = content;
     }
   });
+
+  // Load comments when documentId changes
+  $effect(() => {
+    const docId = documentState.id;
+    if (docId) {
+      void commentsState.loadComments(docId);
+    }
+  });
+
+  // State for new comment creation (floating card input)
+  let newCommentState: { from: number; to: number; quotedText: string; top: number } | null =
+    $state(null);
+
+  // Track comment positions based on their highlighted text Y position
+  interface CommentPosition {
+    commentId: string;
+    top: number;
+  }
+  let commentPositions = $state<CommentPosition[]>([]);
+
+  // Update comment positions when editor content changes or on scroll
+  function updateCommentPositions(): void {
+    if (!editor || !documentAreaRef) return;
+
+    // Store references for use in callback
+    const editorRef = editor;
+    const containerRef = documentAreaRef;
+
+    const positions: CommentPosition[] = [];
+    const { doc } = editorRef.state;
+    const containerRect = containerRef.getBoundingClientRect();
+
+    doc.descendants((node, pos) => {
+      if (!node.isText) return true;
+
+      for (const mark of node.marks) {
+        if (mark.type.name === 'comment') {
+          const commentId = mark.attrs.commentId as string;
+          // Check if we already have this comment's position
+          if (!positions.find((p) => p.commentId === commentId)) {
+            try {
+              const coords = editorRef.view.coordsAtPos(pos);
+              // Calculate position relative to the document area, accounting for scroll
+              const top = coords.top - containerRect.top + containerRef.scrollTop;
+              positions.push({ commentId, top });
+            } catch {
+              // Position might be invalid, skip
+            }
+          }
+        }
+      }
+      return true;
+    });
+
+    commentPositions = positions;
+  }
+
+  // Update positions on editor transaction and scroll
+  $effect(() => {
+    if (!editor) return;
+
+    const handleUpdate = (): void => {
+      // Use requestAnimationFrame to debounce position updates
+      requestAnimationFrame(updateCommentPositions);
+    };
+
+    editor.on('transaction', handleUpdate);
+
+    // Initial position calculation
+    updateCommentPositions();
+
+    return () => {
+      editor.off('transaction', handleUpdate);
+    };
+  });
+
+  // Comment creation handler - creates comment and applies mark
+  function handleSubmitNewComment(content: string): void {
+    const docId = documentState.id;
+    if (!docId || !newCommentState) return;
+
+    const { from, to, quotedText } = newCommentState;
+
+    void commentsState
+      .addComment({
+        documentId: docId,
+        textRange: { from, to, quotedText },
+        content,
+        author: currentAuthor,
+      })
+      .then((comment) => {
+        if (comment && editor) {
+          // Select the text range and apply the comment mark
+          editor.commands.setTextSelection({ from, to });
+          editor.commands.setComment(comment.id);
+          editor.commands.setActiveComment(comment.id);
+          // Update positions to include new comment
+          updateCommentPositions();
+        }
+        newCommentState = null;
+      });
+  }
+
+  function handleCancelNewComment(): void {
+    newCommentState = null;
+  }
+
+  // Handle the custom event from toolbar to initiate comment creation
+  function handleCreateCommentEvent(event: Event): void {
+    const customEvent = event as CustomEvent<{ from: number; to: number; quotedText: string }>;
+    const { from, to, quotedText } = customEvent.detail;
+
+    if (!editor || !documentAreaRef) return;
+
+    // Get the Y position of the selected text
+    try {
+      const coords = editor.view.coordsAtPos(from);
+      const containerRect = documentAreaRef.getBoundingClientRect();
+      const top = coords.top - containerRect.top + documentAreaRef.scrollTop;
+
+      // Set state to show the floating comment input card
+      newCommentState = { from, to, quotedText, top };
+    } catch {
+      // Fallback: show at a default position
+      newCommentState = { from, to, quotedText, top: 100 };
+    }
+  }
+
+  // Get comments with their positions for the container
+  const commentsWithPositions = $derived.by(() => {
+    const comments = commentsState.commentsArray;
+    return comments
+      .map((comment: Comment) => {
+        const pos = commentPositions.find((p) => p.commentId === comment.id);
+        return {
+          comment,
+          top: pos?.top ?? 0,
+        };
+      })
+      .filter((c) => c.top > 0); // Only show comments that have valid positions
+  });
+
+  // Scroll to comment in editor
+  function scrollToCommentInEditor(commentId: string): void {
+    if (!editor) return;
+
+    // Set this comment as active
+    editor.commands.setActiveComment(commentId);
+
+    // Find the mark position in the document
+    const { doc } = editor.state;
+    let targetPos: number | null = null;
+
+    doc.descendants((node, pos) => {
+      if (targetPos !== null) return false;
+      if (!node.isText) return true;
+
+      const commentMark = node.marks.find(
+        (mark) => mark.type.name === 'comment' && mark.attrs.commentId === commentId,
+      );
+
+      if (commentMark) {
+        targetPos = pos;
+        return false;
+      }
+      return true;
+    });
+
+    if (targetPos !== null && documentAreaRef) {
+      // Get coordinates of the mark position
+      const coords = editor.view.coordsAtPos(targetPos);
+      const containerRect = documentAreaRef.getBoundingClientRect();
+
+      // Scroll the container to show the comment
+      const scrollTop = coords.top - containerRect.top + documentAreaRef.scrollTop - 100;
+      documentAreaRef.scrollTo({
+        top: Math.max(0, scrollTop),
+        behavior: 'smooth',
+      });
+    }
+  }
+
+  // Clear active comment when clicking outside comment cards
+  function handleDocumentAreaClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    // Don't clear if clicking inside the comments area
+    if (target.closest('.comments-area')) return;
+    // Clear active comment
+    commentsState.setActiveComment(null);
+    if (editor) {
+      editor.commands.clearActiveComment();
+    }
+  }
+
+  // Comment panel handlers
+  function handleResolveComment(commentId: string): void {
+    void commentsState.resolveComment(commentId, currentAuthor);
+  }
+
+  function handleUnresolveComment(commentId: string): void {
+    void commentsState.unresolveComment(commentId);
+  }
+
+  function handleDeleteComment(commentId: string): void {
+    void commentsState.deleteComment(commentId);
+    if (editor) {
+      editor.commands.unsetComment(commentId);
+    }
+  }
+
+  function handleReplyToComment(commentId: string, content: string): void {
+    void commentsState.addReply({
+      commentId,
+      content,
+      author: currentAuthor,
+    });
+  }
+
+  function handleReaction(commentId: string, _replyId: string | null, emoji: ReactionEmoji): void {
+    void commentsState.addReaction(commentId, emoji, currentAuthor);
+  }
 
   onMount(() => {
     editor = new Editor({
@@ -77,6 +305,7 @@
         ExcalidrawExtension.configure({
           defaultTheme: 'dark',
         }),
+        CommentMark,
       ],
       content: documentState.content,
       editorProps: {
@@ -92,9 +321,13 @@
     });
     lastSyncedContent = documentState.content;
     onEditorReady?.(editor);
+
+    // Listen for comment creation events from toolbar
+    editorElement.addEventListener('glow:create-comment', handleCreateCommentEvent);
   });
 
   onDestroy(() => {
+    editorElement?.removeEventListener('glow:create-comment', handleCreateCommentEvent);
     editor?.destroy();
   });
 </script>
@@ -114,21 +347,48 @@
     </div>
   </div>
 
-  <!-- Document area with page -->
-  <div class="document-area" bind:this={documentAreaRef}>
-    <div class="page">
-      <div class="editor" bind:this={editorElement}></div>
-    </div>
+  <!-- Main content area with document and floating comment cards -->
+  <div class="main-content">
+    <!-- Document area with page -->
+    <div
+      class="document-area"
+      bind:this={documentAreaRef}
+      onscroll={updateCommentPositions}
+      onclick={handleDocumentAreaClick}
+    >
+      <div class="page-wrapper">
+        <div class="page">
+          <div class="editor" bind:this={editorElement}></div>
+        </div>
 
-    <!-- Drawing Overlay for "draw anywhere" functionality -->
-    <DrawingOverlay
-      editor={editor ?? undefined}
-      containerRef={documentAreaRef}
-      theme="dark"
-    />
+        <!-- Floating comment cards positioned to the right of the page -->
+        <div class="comments-area">
+          <CommentCardsContainer
+            comments={commentsWithPositions}
+            {currentAuthor}
+            activeCommentId={commentsState.activeCommentId}
+            showResolved={commentsState.showResolved}
+            newComment={newCommentState}
+            onNewCommentSubmit={handleSubmitNewComment}
+            onNewCommentCancel={handleCancelNewComment}
+            onActivate={(commentId: string) => {
+              commentsState.setActiveComment(commentId);
+              scrollToCommentInEditor(commentId);
+            }}
+            onResolve={handleResolveComment}
+            onUnresolve={handleUnresolveComment}
+            onDelete={handleDeleteComment}
+            onReply={handleReplyToComment}
+            onReact={handleReaction}
+          />
+        </div>
+      </div>
+
+      <!-- Drawing Overlay for "draw anywhere" functionality -->
+      <DrawingOverlay editor={editor ?? undefined} containerRef={documentAreaRef} theme="dark" />
+    </div>
   </div>
 </div>
-
 
 <style>
   .document-container {
@@ -137,6 +397,12 @@
     flex-direction: column;
     overflow: hidden;
     background-color: #525659;
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
   }
 
   .ruler {
@@ -187,6 +453,12 @@
     position: relative; /* For DrawingOverlay positioning */
   }
 
+  .page-wrapper {
+    display: flex;
+    gap: 24px;
+    position: relative;
+  }
+
   .page {
     width: 816px;
     min-height: 1056px;
@@ -196,6 +468,15 @@
       0 1px 3px rgb(0 0 0 / 0.3),
       0 4px 12px rgb(0 0 0 / 0.2);
     padding: 96px 96px 72px;
+    flex-shrink: 0;
+  }
+
+  .comments-area {
+    width: 300px;
+    flex-shrink: 0;
+    position: relative;
+    /* Allow dropdowns to overflow */
+    overflow: visible;
   }
 
   .editor {
@@ -350,5 +631,22 @@
   .editor :global(.document-content a:hover),
   .editor :global(.document-content .editor-link:hover) {
     color: var(--glow-accent-hover, #93c5fd);
+  }
+
+  /* Comment highlight styles */
+  .editor :global(.document-content .comment-highlight) {
+    background-color: rgba(251, 191, 36, 0.3);
+    border-bottom: 2px solid rgb(251, 191, 36);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .editor :global(.document-content .comment-highlight:hover) {
+    background-color: rgba(251, 191, 36, 0.45);
+  }
+
+  .editor :global(.document-content .comment-highlight[data-comment-active='true']) {
+    background-color: rgba(251, 191, 36, 0.5);
+    border-bottom-width: 3px;
   }
 </style>

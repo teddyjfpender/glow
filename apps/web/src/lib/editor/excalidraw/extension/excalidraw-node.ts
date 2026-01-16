@@ -215,6 +215,7 @@ export const ExcalidrawNode = Node.create<ExcalidrawNodeOptions>({
               version: options.version ?? 1,
               anchorType: 'block' as AnchorType,
               anchorData: serializeAnchor(anchor),
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               wrapMode: options.wrapMode ?? ('inline' as WrapMode),
             },
           });

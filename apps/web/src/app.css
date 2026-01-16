@@ -33,6 +33,13 @@
   --glow-highlight-yellow: rgb(251 191 36 / 0.3);
   --glow-highlight-search: rgb(52 211 153 / 0.3);
 
+  /* Comment highlight colors */
+  --glow-comment-highlight: rgb(251 191 36 / 0.25);
+  --glow-comment-highlight-hover: rgb(251 191 36 / 0.4);
+  --glow-comment-highlight-active: rgb(251 191 36 / 0.5);
+  --glow-comment-underline: rgb(251 191 36 / 0.6);
+  --glow-comment-underline-active: rgb(251 191 36 / 1);
+
   /* Typography */
   --glow-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --glow-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
@@ -247,6 +254,25 @@ pre code {
   pointer-events: none;
   float: left;
   height: 0;
+}
+
+/* ==================== Comment Highlights ==================== */
+
+/* Comment highlight styles in editor */
+.comment-highlight {
+  background-color: var(--glow-comment-highlight);
+  border-bottom: 2px solid var(--glow-comment-underline);
+  cursor: pointer;
+  transition: background-color var(--glow-transition-fast);
+}
+
+.comment-highlight:hover {
+  background-color: var(--glow-comment-highlight-hover);
+}
+
+.comment-highlight[data-comment-active="true"] {
+  background-color: var(--glow-comment-highlight-active);
+  border-bottom-color: var(--glow-comment-underline-active);
 }
 
 /* ============================================

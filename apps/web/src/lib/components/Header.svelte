@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import MenuBar from './MenuBar.svelte';
   import { documentState } from '$lib/state/document.svelte';
+  import { commentsState } from '$lib/state/comments.svelte';
 
   interface Props {
     onMenuAction?: (action: string) => void;
@@ -39,11 +40,14 @@
   <!-- Logo spanning both rows -->
   <a href={resolve('/')} class="logo-link" aria-label="Go to home">
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 100 141.42">
-      <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
-      <path fill="#424242" d="M75 0v25h25L75 0z"/>
-      <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
-      <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
-      <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff"/>
+      <path
+        fill="#757575"
+        d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"
+      />
+      <path fill="#424242" d="M75 0v25h25L75 0z" />
+      <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff" />
+      <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff" />
+      <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff" />
     </svg>
   </a>
 
@@ -112,7 +116,13 @@
         </span>
 
         <!-- Comment button -->
-        <button class="icon-button-large" title="Comments" aria-label="Open comments">
+        <button
+          class="icon-button-large comment-button"
+          class:active={commentsState.isPanelOpen}
+          title="Comments"
+          aria-label="Open comments"
+          onclick={() => commentsState.togglePanel()}
+        >
           <svg
             width="20"
             height="20"
@@ -123,6 +133,9 @@
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" />
           </svg>
+          {#if commentsState.unresolvedCount > 0}
+            <span class="comment-badge">{commentsState.unresolvedCount}</span>
+          {/if}
         </button>
 
         <!-- Video call button -->
@@ -188,7 +201,9 @@
     text-decoration: none;
     border-radius: 4px;
     padding: 0;
-    transition: opacity var(--glow-transition-fast), transform var(--glow-transition-fast);
+    transition:
+      opacity var(--glow-transition-fast),
+      transform var(--glow-transition-fast);
   }
 
   .logo-link:hover {
@@ -311,6 +326,32 @@
   .icon-button-large:hover {
     background-color: var(--glow-bg-elevated);
     color: #9e9e9e;
+  }
+
+  .comment-button {
+    position: relative;
+  }
+
+  .comment-button.active {
+    background-color: var(--glow-bg-elevated);
+    color: var(--glow-accent-primary);
+  }
+
+  .comment-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    background-color: var(--glow-accent-primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .save-status {

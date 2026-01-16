@@ -30,23 +30,24 @@
     const size = 8;
     const offset = -size / 2;
 
+    const offsetStr = String(offset);
     switch (position) {
       case 'nw':
-        return `top: ${offset}px; left: ${offset}px;`;
+        return `top: ${offsetStr}px; left: ${offsetStr}px;`;
       case 'n':
-        return `top: ${offset}px; left: calc(50% + ${offset}px);`;
+        return `top: ${offsetStr}px; left: calc(50% + ${offsetStr}px);`;
       case 'ne':
-        return `top: ${offset}px; right: ${offset}px;`;
+        return `top: ${offsetStr}px; right: ${offsetStr}px;`;
       case 'e':
-        return `top: calc(50% + ${offset}px); right: ${offset}px;`;
+        return `top: calc(50% + ${offsetStr}px); right: ${offsetStr}px;`;
       case 'se':
-        return `bottom: ${offset}px; right: ${offset}px;`;
+        return `bottom: ${offsetStr}px; right: ${offsetStr}px;`;
       case 's':
-        return `bottom: ${offset}px; left: calc(50% + ${offset}px);`;
+        return `bottom: ${offsetStr}px; left: calc(50% + ${offsetStr}px);`;
       case 'sw':
-        return `bottom: ${offset}px; left: ${offset}px;`;
+        return `bottom: ${offsetStr}px; left: ${offsetStr}px;`;
       case 'w':
-        return `top: calc(50% + ${offset}px); left: ${offset}px;`;
+        return `top: calc(50% + ${offsetStr}px); left: ${offsetStr}px;`;
       default:
         return '';
     }
