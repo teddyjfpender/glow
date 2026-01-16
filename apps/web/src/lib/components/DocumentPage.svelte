@@ -25,6 +25,17 @@
   import BionicOverlay from './BionicOverlay.svelte';
   import { rsvpState } from '$lib/state/rsvp.svelte';
   import { bionicState } from '$lib/state/bionic.svelte';
+  import { headerFooterState } from '$lib/state/header-footer.svelte';
+  import {
+    PAGE_WIDTH,
+    PAGE_HEIGHT,
+    PAGE_CONTENT_HEIGHT,
+    PAGE_GAP,
+    PAGE_MARGIN_TOP,
+    HEADER_HEIGHT,
+    FOOTER_HEIGHT,
+    calculatePageCount,
+  } from '$lib/editor/utils/page-metrics';
 
   interface Props {
     onEditorReady?: (editor: Editor) => void;
@@ -33,10 +44,15 @@
   const { onEditorReady }: Props = $props();
 
   let editorElement: HTMLDivElement;
+  let editorWrapperRef = $state<HTMLDivElement | null>(null);
   let documentAreaRef = $state<HTMLDivElement | null>(null);
   let pagesContentRef = $state<HTMLDivElement | null>(null);
   let editor: Editor | null = $state(null);
   let lastSyncedContent = '';
+
+  // Page count based on content height
+  let pageCount = $state(1);
+  let contentHeight = $state(0);
 
   // Editor content HTML for bionic reading overlay
   let editorContent = $state('');
@@ -50,10 +66,17 @@
   // Track selection state for side toolbar
   let hasSelection = $state(false);
 
-  // Update cached editor content (used for bionic reading overlay)
+  // Update cached editor content and calculate page count
   function updateEditorContent(): void {
     if (!editor) return;
     editorContent = editor.getHTML();
+
+    // Calculate page count based on editor content height
+    if (editorWrapperRef) {
+      const height = editorWrapperRef.scrollHeight;
+      contentHeight = height;
+      pageCount = calculatePageCount(height, PAGE_CONTENT_HEIGHT);
+    }
   }
 
   // Update cursor position for side toolbar
@@ -503,14 +526,51 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="pages-container">
-          <!-- Single page frame that grows with content -->
-          <div class="page-frame" bind:this={pagesContentRef}>
-            <!-- Content area -->
-            <div class="page-content-area">
-              <div class="editor" bind:this={editorElement}></div>
+        <div class="pages-container" bind:this={pagesContentRef}>
+          {#each Array(pageCount) as _, pageIndex}
+            {@const pageNum = pageIndex + 1}
+            {@const headerFooter = headerFooterState.getConfigForPage(pageNum, pageCount)}
+            <!-- Page frame with header, content viewport, and footer -->
+            <div class="page-frame" data-page={pageNum}>
+              <!-- Page Header -->
+              <div class="page-header">
+                <div class="header-section header-left">{headerFooter.header.left}</div>
+                <div class="header-section header-center">{headerFooter.header.center}</div>
+                <div class="header-section header-right">{headerFooter.header.right}</div>
+              </div>
+
+              <!-- Content Viewport - clips to show only this page's content -->
+              <div class="page-content-viewport">
+                <div
+                  class="page-content-shifter"
+                  style="transform: translateY(-{pageIndex * PAGE_CONTENT_HEIGHT}px)"
+                >
+                  {#if pageIndex === 0}
+                    <!-- First page contains the actual editor -->
+                    <div class="editor-wrapper" bind:this={editorWrapperRef}>
+                      <div class="editor" bind:this={editorElement}></div>
+                    </div>
+                  {:else}
+                    <!-- Other pages show a visual mirror of the content -->
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering editor content for pagination -->
+                    <div class="editor-wrapper page-mirror">{@html editorContent}</div>
+                  {/if}
+                </div>
+              </div>
+
+              <!-- Page Footer -->
+              <div class="page-footer">
+                <div class="footer-section footer-left">{headerFooter.footer.left}</div>
+                <div class="footer-section footer-center">{headerFooter.footer.center}</div>
+                <div class="footer-section footer-right">{headerFooter.footer.right}</div>
+              </div>
             </div>
-          </div>
+
+            <!-- Gap between pages -->
+            {#if pageIndex < pageCount - 1}
+              <div class="page-gap"></div>
+            {/if}
+          {/each}
 
           <!-- Side Toolbar follows cursor position -->
           <div class="side-toolbar-container" style="top: {cursorTop}px">
@@ -550,6 +610,16 @@
 
       <!-- Drawing Overlay for "draw anywhere" functionality -->
       <DrawingOverlay editor={editor ?? undefined} containerRef={documentAreaRef} theme="dark" />
+
+      <!-- Page Navigation Footer -->
+      {#if pageCount > 1}
+        <div class="page-nav-footer">
+          <div class="page-nav-content">
+            <span class="page-indicator">Page 1 of {pageCount}</span>
+            <span class="page-hint">Scroll to navigate pages</span>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 
@@ -650,23 +720,206 @@
 
   .pages-container {
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Single page frame that grows with content */
+  /* Page frame with fixed dimensions */
   .page-frame {
     position: relative;
     width: 816px;
-    min-height: 1056px;
+    height: 1056px;
     background-color: #121212;
     border-radius: 2px;
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.3),
       0 4px 12px rgb(0 0 0 / 0.2);
+    display: grid;
+    grid-template-rows: 72px 1fr 60px;
+    flex-shrink: 0;
   }
 
-  /* Content area with page margins */
-  .page-content-area {
-    padding: 96px 96px 72px 96px;
+  /* Page Header */
+  .page-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    padding: 12px 96px;
+    font-size: 10pt;
+    color: var(--glow-text-secondary);
+    border-bottom: 1px solid var(--glow-border-subtle);
+  }
+
+  .header-section {
+    min-height: 20px;
+  }
+
+  .header-left {
+    text-align: left;
+  }
+
+  .header-center {
+    text-align: center;
+  }
+
+  .header-right {
+    text-align: right;
+  }
+
+  /* Page Footer */
+  .page-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    padding: 12px 96px;
+    font-size: 10pt;
+    color: var(--glow-text-tertiary);
+    border-top: 1px solid var(--glow-border-subtle);
+  }
+
+  .footer-section {
+    min-height: 20px;
+  }
+
+  .footer-left {
+    text-align: left;
+  }
+
+  .footer-center {
+    text-align: center;
+  }
+
+  .footer-right {
+    text-align: right;
+  }
+
+  /* Content viewport clips to page boundaries */
+  .page-content-viewport {
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Shifts content to show correct portion for each page */
+  .page-content-shifter {
+    position: relative;
+  }
+
+  /* Editor wrapper with page padding */
+  .editor-wrapper {
+    padding: 0 96px;
+    width: 816px;
+    box-sizing: border-box;
+  }
+
+  /* Page gap between pages */
+  .page-gap {
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  /* Mirror pages (non-editable) - use same styles as editor */
+  .page-mirror {
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--glow-font-sans);
+    font-size: 11pt;
+    line-height: 1.5;
+    color: var(--glow-text-primary);
+  }
+
+  .page-mirror :global(p) {
+    margin: 0 0 12px 0;
+  }
+
+  .page-mirror :global(h1) {
+    font-size: 26pt;
+    font-weight: 400;
+    margin: 24px 0 12px 0;
+    line-height: 1.2;
+  }
+
+  .page-mirror :global(h2) {
+    font-size: 18pt;
+    font-weight: 400;
+    margin: 20px 0 10px 0;
+    line-height: 1.3;
+  }
+
+  .page-mirror :global(h3) {
+    font-size: 14pt;
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+    line-height: 1.4;
+  }
+
+  .page-mirror :global(ul),
+  .page-mirror :global(ol) {
+    margin: 0 0 12px 0;
+    padding-left: 24px;
+    color: var(--glow-text-primary);
+  }
+
+  .page-mirror :global(li) {
+    margin-bottom: 4px;
+  }
+
+  .page-mirror :global(blockquote) {
+    border-left: 4px solid var(--glow-border-default);
+    margin: 12px 0;
+    padding-left: 16px;
+    color: var(--glow-text-secondary);
+  }
+
+  .page-mirror :global(code) {
+    font-family: var(--glow-font-mono);
+    font-size: 10pt;
+    background-color: var(--glow-bg-elevated);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .page-mirror :global(pre) {
+    font-family: var(--glow-font-mono);
+    font-size: 10pt;
+    background-color: var(--glow-bg-surface);
+    padding: 16px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+
+  /* Page Navigation Footer */
+  .page-nav-footer {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+  }
+
+  .page-nav-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 20px;
+    background-color: #1a1a1a;
+    border: 1px solid var(--glow-border-default);
+    border-radius: 20px;
+    box-shadow:
+      0 4px 12px rgb(0 0 0 / 0.3),
+      0 2px 4px rgb(0 0 0 / 0.2);
+  }
+
+  .page-indicator {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--glow-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .page-hint {
+    font-size: 11px;
+    color: var(--glow-text-tertiary);
   }
 
   /* Side toolbar container */
