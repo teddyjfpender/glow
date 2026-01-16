@@ -205,7 +205,7 @@
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 0 4px;
+    padding: 0;
   }
 
   .menu-container {
@@ -218,7 +218,7 @@
     color: var(--glow-text-primary);
     background: none;
     border: none;
-    padding: 4px 8px;
+    padding: 2px 7px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color var(--glow-transition-fast);

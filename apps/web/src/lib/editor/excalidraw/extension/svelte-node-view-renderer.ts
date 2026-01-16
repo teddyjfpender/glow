@@ -86,6 +86,7 @@ function createSvelteNodeView(
         height: attrs.height as number,
         theme: attrs.theme as string,
         version: attrs.version as number,
+        wrapMode: attrs.wrapMode as string ?? 'inline',
 
         // Selection state
         selected: isSelected,
@@ -100,6 +101,10 @@ function createSvelteNodeView(
             version: ((attrs.version as number) ?? 0) + 1,
           });
           drawingEditorState.setUnsavedChanges(true);
+        },
+
+        onupdateattrs: (newAttrs: Record<string, unknown>) => {
+          updateAttributes(newAttrs);
         },
 
         ondelete: () => {

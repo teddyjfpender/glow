@@ -3,7 +3,7 @@
    * Drawing Node View Component
    *
    * Renders an Excalidraw drawing inline in the editor.
-   * Shows static preview in view mode, live editor in edit mode.
+   * Google Docs-style interaction: click to select, double-click to edit.
    */
   import { browser } from '$app/environment';
   import { onMount, onDestroy } from 'svelte';
@@ -15,12 +15,14 @@
     createEmptyScene,
     generatePreviewSvg,
   } from '../core/excalidraw-core';
-  import type { ExcalidrawScene, Theme, ExcalidrawAPI, ExcalidrawChangeEvent, ExcalidrawElement } from '../core/types';
+  import type { ExcalidrawScene, Theme, ExcalidrawAPI, ExcalidrawChangeEvent, ExcalidrawElement, WrapMode } from '../core/types';
   import {
     drawingEditorState,
     excalidrawAPIRegistry,
     syncExcalidrawToTool,
   } from '../core/drawing-state.svelte';
+  import SelectionBorder from './SelectionBorder.svelte';
+  import ImageToolbar from './ImageToolbar.svelte';
 
   // ============================================================================
   // Props
@@ -32,9 +34,11 @@
     width: number;
     height: number;
     theme?: Theme;
+    wrapMode?: WrapMode;
     selected?: boolean;
     editor?: Editor;
     onupdate?: (sceneData: string) => void;
+    onupdateattrs?: (attrs: Record<string, unknown>) => void;
     ondelete?: () => void;
     onfinish?: () => void;
   }
@@ -42,12 +46,14 @@
   const {
     id,
     sceneData,
-    width: _width,
-    height,
+    width: initialWidth,
+    height: initialHeight,
     theme = 'dark',
+    wrapMode: initialWrapMode = 'inline',
     selected: initialSelected = false,
     editor: _editor,
     onupdate,
+    onupdateattrs,
     ondelete,
     onfinish,
   }: Props = $props();
@@ -59,10 +65,21 @@
   let containerRef = $state<HTMLDivElement | null>(null);
   let editorContainerRef = $state<HTMLDivElement | null>(null);
   let isSelected = $state(false);
+  let isEditing = $state(false);
   let currentScene = $state<ExcalidrawScene>(createEmptyScene('dark'));
   let hasUnsavedChanges = $state(false);
   let sceneInitialized = false;
   let selectionInitialized = false;
+
+  // Dimensions state for resize
+  let currentWidth = $state(initialWidth);
+  let currentHeight = $state(initialHeight);
+  let currentWrapMode = $state<WrapMode>(initialWrapMode);
+
+  // Resize state
+  let isResizing = $state(false);
+  let resizeStartWidth = $state(0);
+  let resizeStartHeight = $state(0);
 
   // Initialize state from props on mount (run once)
   $effect(() => {
@@ -93,9 +110,9 @@
   const hasContent = $derived(
     currentScene.elements.filter((el: ExcalidrawElement) => !el.isDeleted).length > 0
   );
-  const showEditor = $derived(isSelected);
-  const showPreview = $derived(!isSelected && hasContent);
-  const showEmpty = $derived(!isSelected && !hasContent);
+  const showEditor = $derived(isEditing);
+  const showPreview = $derived(!isEditing && hasContent);
+  const showEmpty = $derived(!isEditing && !hasContent);
 
   // ============================================================================
   // Lifecycle
@@ -111,14 +128,14 @@
           const wrapper = containerRef?.closest('[data-node-view-wrapper]');
           if (wrapper) {
             const newSelected = wrapper.getAttribute('data-selected') === 'true';
-            if (!newSelected && isSelected && hasUnsavedChanges) {
-              saveChanges();
+            if (!newSelected && isSelected) {
+              // Deselected - save and exit edit mode
+              if (hasUnsavedChanges) {
+                saveChanges();
+              }
+              isEditing = false;
             }
             isSelected = newSelected;
-
-            if (newSelected && !excalidrawCore) {
-              void initializeExcalidraw();
-            }
           }
         }
       }
@@ -128,10 +145,6 @@
     if (wrapper) {
       observer.observe(wrapper, { attributes: true, attributeFilter: ['data-selected'] });
       isSelected = wrapper.getAttribute('data-selected') === 'true';
-
-      if (isSelected) {
-        void initializeExcalidraw();
-      }
     }
 
     // Generate initial preview
@@ -217,7 +230,7 @@
 
   // Regenerate preview when scene changes
   $effect(() => {
-    if (!isSelected && hasContent) {
+    if (!isEditing && hasContent) {
       void generatePreview();
     }
   });
@@ -236,30 +249,115 @@
     void generatePreview();
   }
 
-  function saveAndClose(): void {
+  function enterEditMode(): void {
+    isEditing = true;
+    void initializeExcalidraw();
+  }
+
+  function exitEditMode(): void {
     saveChanges();
+    isEditing = false;
+    destroyExcalidraw();
+    isReady = false;
     onfinish?.();
   }
 
   function handleDelete(): void {
-    if (confirm('Are you sure you want to delete this drawing?')) {
-      ondelete?.();
+    ondelete?.();
+  }
+
+  function handleWrapModeChange(mode: WrapMode): void {
+    currentWrapMode = mode;
+    onupdateattrs?.({ wrapMode: mode });
+  }
+
+  function handleDoubleClick(): void {
+    if (!isEditing) {
+      enterEditMode();
     }
+  }
+
+  // ============================================================================
+  // Resize Handlers
+  // ============================================================================
+
+  type HandlePosition = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
+  function handleResizeStart(_handle: HandlePosition, _e: MouseEvent): void {
+    isResizing = true;
+    resizeStartWidth = currentWidth;
+    resizeStartHeight = currentHeight;
+  }
+
+  function handleResize(handle: HandlePosition, deltaX: number, deltaY: number, _e: MouseEvent): void {
+    if (!isResizing) return;
+
+    const aspectRatio = resizeStartWidth / resizeStartHeight;
+    let newWidth = resizeStartWidth;
+    let newHeight = resizeStartHeight;
+
+    // Corner handles maintain aspect ratio
+    const isCorner = ['nw', 'ne', 'se', 'sw'].includes(handle);
+
+    switch (handle) {
+      case 'e':
+        newWidth = Math.max(100, resizeStartWidth + deltaX);
+        break;
+      case 'w':
+        newWidth = Math.max(100, resizeStartWidth - deltaX);
+        break;
+      case 's':
+        newHeight = Math.max(100, resizeStartHeight + deltaY);
+        break;
+      case 'n':
+        newHeight = Math.max(100, resizeStartHeight - deltaY);
+        break;
+      case 'se':
+        newWidth = Math.max(100, resizeStartWidth + deltaX);
+        if (isCorner) newHeight = newWidth / aspectRatio;
+        break;
+      case 'sw':
+        newWidth = Math.max(100, resizeStartWidth - deltaX);
+        if (isCorner) newHeight = newWidth / aspectRatio;
+        break;
+      case 'ne':
+        newWidth = Math.max(100, resizeStartWidth + deltaX);
+        if (isCorner) newHeight = newWidth / aspectRatio;
+        break;
+      case 'nw':
+        newWidth = Math.max(100, resizeStartWidth - deltaX);
+        if (isCorner) newHeight = newWidth / aspectRatio;
+        break;
+    }
+
+    currentWidth = Math.round(newWidth);
+    currentHeight = Math.round(Math.max(100, newHeight));
+  }
+
+  function handleResizeEnd(_handle: HandlePosition): void {
+    isResizing = false;
+    onupdateattrs?.({ width: currentWidth, height: currentHeight });
   }
 
   function handleKeydown(event: KeyboardEvent): void {
     if (!isSelected) return;
 
-    // Cmd/Ctrl + S to save and close
+    // Cmd/Ctrl + S to save
     if ((event.metaKey || event.ctrlKey) && event.key === 's') {
       event.preventDefault();
-      saveAndClose();
+      saveChanges();
     }
 
-    // Escape to finish
-    if (event.key === 'Escape') {
+    // Escape to exit edit mode
+    if (event.key === 'Escape' && isEditing) {
       event.preventDefault();
-      saveAndClose();
+      exitEditMode();
+    }
+
+    // Enter to start editing
+    if (event.key === 'Enter' && !isEditing) {
+      event.preventDefault();
+      enterEditMode();
     }
   }
 </script>
@@ -269,18 +367,21 @@
 <div
   bind:this={containerRef}
   class="drawing-node-view"
-  class:selected={isSelected}
-  class:editing={isSelected}
+  class:selected={isSelected && !isEditing}
+  class:editing={isEditing}
   class:empty={showEmpty}
-  style="min-height: {isSelected ? Math.max(height, 400) : Math.max(height, 150)}px;"
+  style="width: {currentWidth}px; min-height: {isEditing ? Math.max(currentHeight, 400) : Math.max(currentHeight, 150)}px;"
+  ondblclick={handleDoubleClick}
+  role="button"
+  tabindex="0"
 >
   {#if browser}
-    <!-- Editor Container (only rendered when selected) -->
+    <!-- Editor Container (only rendered when editing) -->
     {#if showEditor}
       <div
         bind:this={editorContainerRef}
         class="excalidraw-editor-container"
-        style="height: {Math.max(height, 400)}px;"
+        style="height: {Math.max(currentHeight, 400)}px;"
       >
         {#if !isReady}
           <div class="loading-state">
@@ -290,23 +391,18 @@
         {/if}
       </div>
 
-      <!-- Status Bar -->
-      <div class="status-bar">
+      <!-- Done button when editing -->
+      <div class="edit-status-bar">
         <span class="status-text">
           {hasUnsavedChanges ? 'Editing...' : 'Saved'}
         </span>
-        <div class="status-actions">
-          <button class="btn btn-primary" onclick={saveAndClose}>
-            Done
-          </button>
-          <button class="btn btn-danger" onclick={handleDelete}>
-            Delete
-          </button>
-        </div>
+        <button class="btn btn-primary" onclick={exitEditMode}>
+          Done
+        </button>
       </div>
     {/if}
 
-    <!-- Preview (when not selected and has content) -->
+    <!-- Preview (when not editing and has content) -->
     {#if showPreview && previewSvg}
       <div class="preview-container">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted SVG from Excalidraw -->
@@ -321,14 +417,26 @@
           <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2" />
           <path d="M12 8 L12 16 M8 12 L16 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>
-        <span>Click to add drawing</span>
+        <span>Double-click to add drawing</span>
       </div>
     {/if}
   {/if}
 
-  <!-- Selection Ring -->
-  {#if isSelected}
-    <div class="selection-ring"></div>
+  <!-- Selection UI (only when selected but not editing) -->
+  {#if isSelected && !isEditing}
+    <SelectionBorder
+      width={currentWidth}
+      height={currentHeight}
+      onResizeStart={handleResizeStart}
+      onResize={handleResize}
+      onResizeEnd={handleResizeEnd}
+    />
+    <ImageToolbar
+      wrapMode={currentWrapMode}
+      onWrapModeChange={handleWrapModeChange}
+      onEdit={enterEditMode}
+      onDelete={handleDelete}
+    />
   {/if}
 </div>
 
@@ -336,31 +444,32 @@
   .drawing-node-view {
     position: relative;
     background-color: transparent;
-    border: 1px solid var(--glow-border-subtle, #3a3a4a);
-    border-radius: 12px;
+    border-radius: 4px;
     cursor: default;
-    transition:
-      border-color 0.2s,
-      box-shadow 0.2s,
-      min-height 0.3s ease;
+    transition: box-shadow 0.2s;
     margin: 16px 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
 
-  .drawing-node-view:hover {
-    border-color: var(--glow-border-default, #4a4a5a);
+  .drawing-node-view:focus {
+    outline: none;
   }
 
-  .drawing-node-view.selected,
+  .drawing-node-view.selected {
+    /* No border - SelectionBorder component handles this */
+  }
+
   .drawing-node-view.editing {
-    border-color: var(--glow-accent, #3b82f6);
+    border: 2px solid var(--glow-accent, #3b82f6);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
   }
 
   .drawing-node-view.empty {
-    border-style: dashed;
+    border: 1px dashed var(--glow-border-subtle, #3a3a4a);
+    border-radius: 12px;
     cursor: pointer;
     align-items: center;
     justify-content: center;
@@ -396,8 +505,8 @@
     height: auto;
   }
 
-  /* Status Bar */
-  .status-bar {
+  /* Edit Status Bar (only shown when editing) */
+  .edit-status-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -410,11 +519,6 @@
   .status-text {
     font-size: 13px;
     color: var(--glow-text-secondary, #a0a0b0);
-  }
-
-  .status-actions {
-    display: flex;
-    gap: 8px;
   }
 
   .btn {
@@ -441,12 +545,6 @@
 
   .btn-primary:hover {
     background-color: #2563eb;
-  }
-
-  .btn-danger:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border-color: #ef4444;
   }
 
   /* Empty State */
@@ -507,26 +605,6 @@
   @keyframes spin {
     to {
       transform: rotate(360deg);
-    }
-  }
-
-  /* Selection Ring */
-  .selection-ring {
-    position: absolute;
-    inset: -4px;
-    border: 2px solid var(--glow-accent, #3b82f6);
-    border-radius: 14px;
-    pointer-events: none;
-    opacity: 0.4;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 0.6;
     }
   }
 </style>

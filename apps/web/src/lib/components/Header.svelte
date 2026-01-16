@@ -36,21 +36,21 @@
 </script>
 
 <header class="header">
-  <!-- Top row: Logo, Title, Actions -->
-  <div class="header-top">
-    <div class="left">
-      <!-- Glow Logo -->
-      <a href={resolve('/')} class="logo-link" aria-label="Go to home">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 100 141.42">
-          <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
-          <path fill="#424242" d="M75 0v25h25L75 0z"/>
-          <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
-          <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
-          <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff"/>
-        </svg>
-      </a>
+  <!-- Logo spanning both rows -->
+  <a href={resolve('/')} class="logo-link" aria-label="Go to home">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 100 141.42">
+      <path fill="#757575" d="M8 0C3.58 0 0 3.58 0 8v125.42c0 4.42 3.58 8 8 8h84c4.42 0 8-3.58 8-8V25L75 0H8z"/>
+      <path fill="#424242" d="M75 0v25h25L75 0z"/>
+      <rect x="20" y="50" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+      <rect x="20" y="70" width="60" height="6" rx="3" ry="3" fill="#ffffff"/>
+      <rect x="20" y="90" width="36" height="6" rx="3" ry="3" fill="#ffffff"/>
+    </svg>
+  </a>
 
-      <!-- Document Title -->
+  <!-- Right section with two rows -->
+  <div class="header-content">
+    <!-- Row 1: Title and actions -->
+    <div class="header-row-top">
       <div class="title-section">
         {#if isEditingTitle}
           <input
@@ -98,108 +98,85 @@
           </svg>
         </button>
       </div>
+
+      <div class="actions">
+        <!-- Save status -->
+        <span class="save-status">
+          {#if documentState.isSaving}
+            Saving...
+          {:else if documentState.isDirty}
+            Unsaved changes
+          {:else if documentState.lastSaved !== null}
+            All changes saved
+          {/if}
+        </span>
+
+        <!-- Comment button -->
+        <button class="icon-button-large" title="Comments" aria-label="Open comments">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" />
+          </svg>
+        </button>
+
+        <!-- Video call button -->
+        <button class="icon-button-large" title="Join a call" aria-label="Join a call">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polygon points="23 7 16 12 23 17 23 7" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
+        </button>
+
+        <!-- Share button -->
+        <button class="share-button">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+          Share
+        </button>
+
+        <!-- User avatar -->
+        <button class="avatar" aria-label="Account">
+          <span>G</span>
+        </button>
+      </div>
     </div>
 
-    <div class="right">
-      <!-- Save status -->
-      <span class="save-status">
-        {#if documentState.isSaving}
-          Saving...
-        {:else if documentState.isDirty}
-          Unsaved changes
-        {:else if documentState.lastSaved !== null}
-          All changes saved
-        {/if}
-      </span>
-
-      <!-- Comment button -->
-      <button class="icon-button-large" title="Comments" aria-label="Open comments">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" />
-        </svg>
-      </button>
-
-      <!-- Video call button -->
-      <button class="icon-button-large" title="Join a call" aria-label="Join a call">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <polygon points="23 7 16 12 23 17 23 7" />
-          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-        </svg>
-      </button>
-
-      <!-- Share button -->
-      <button class="share-button">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-          <polyline points="16 6 12 2 8 6" />
-          <line x1="12" y1="2" x2="12" y2="15" />
-        </svg>
-        Share
-      </button>
-
-      <!-- User avatar -->
-      <button class="avatar" aria-label="Account">
-        <span>G</span>
-      </button>
+    <!-- Row 2: Menu bar -->
+    <div class="header-row-bottom">
+      <MenuBar onAction={onMenuAction} />
     </div>
-  </div>
-
-  <!-- Bottom row: Menu bar -->
-  <div class="header-bottom">
-    <MenuBar onAction={onMenuAction} />
   </div>
 </header>
 
 <style>
   .header {
     display: flex;
-    flex-direction: column;
+    align-items: stretch;
     background-color: var(--glow-bg-surface);
-    border-bottom: 1px solid var(--glow-border-subtle);
-  }
-
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    min-height: 52px;
-  }
-
-  .header-bottom {
-    padding: 0 12px 4px;
-  }
-
-  .left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .right {
-    display: flex;
-    align-items: center;
+    padding: 6px 12px 0;
     gap: 8px;
   }
 
@@ -210,7 +187,7 @@
     flex-shrink: 0;
     text-decoration: none;
     border-radius: 4px;
-    padding: 4px;
+    padding: 0;
     transition: opacity var(--glow-transition-fast), transform var(--glow-transition-fast);
   }
 
@@ -223,10 +200,32 @@
     transform: scale(0.98);
   }
 
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .header-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .header-row-bottom {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+  }
+
   .title-section {
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
   }
 
   .title-button {
@@ -263,6 +262,13 @@
 
   .title-input:focus {
     border-color: #707070;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .icon-button {

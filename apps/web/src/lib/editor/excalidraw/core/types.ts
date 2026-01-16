@@ -267,6 +267,7 @@ export interface ExcalidrawNodeAttrs {
   version: number;
   anchorType: AnchorType;
   anchorData: string;
+  wrapMode: WrapMode;
 }
 
 // ============================================================================
@@ -293,3 +294,9 @@ export interface Rect {
   width: number;
   height: number;
 }
+
+// ============================================================================
+// Text Wrap Mode Types
+// ============================================================================
+
+export type WrapMode = 'inline' | 'wrap-left' | 'wrap-right' | 'break';

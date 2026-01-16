@@ -18,6 +18,7 @@ import type {
   ExcalidrawNodeAttrs,
   Theme,
   AnchorType,
+  WrapMode,
 } from '../core/types';
 import { serializeAnchor, createBlockAnchor } from '../anchors/anchor-system';
 import { SvelteNodeViewRenderer } from './svelte-node-view-renderer';
@@ -157,6 +158,13 @@ export const ExcalidrawNode = Node.create<ExcalidrawNodeOptions>({
           'data-anchor-data': attributes.anchorData as string,
         }),
       },
+      wrapMode: {
+        default: 'inline' as WrapMode,
+        parseHTML: (element) => (element.getAttribute('data-wrap-mode') ?? 'inline') as WrapMode,
+        renderHTML: (attributes) => ({
+          'data-wrap-mode': attributes.wrapMode as string,
+        }),
+      },
     };
   },
 
@@ -207,6 +215,7 @@ export const ExcalidrawNode = Node.create<ExcalidrawNodeOptions>({
               version: options.version ?? 1,
               anchorType: 'block' as AnchorType,
               anchorData: serializeAnchor(anchor),
+              wrapMode: options.wrapMode ?? ('inline' as WrapMode),
             },
           });
         },
