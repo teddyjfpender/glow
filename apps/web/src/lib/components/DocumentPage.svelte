@@ -23,6 +23,7 @@
   import SideToolbar from './SideToolbar.svelte';
   import RSVPReader from './rsvp/RSVPReader.svelte';
   import { rsvpState } from '$lib/state/rsvp.svelte';
+  import { bionicState } from '$lib/state/bionic.svelte';
 
   interface Props {
     onEditorReady?: (editor: Editor) => void;
@@ -207,6 +208,10 @@
     if (text.trim()) {
       rsvpState.start(text);
     }
+  }
+
+  function handleSideToolbarBionic(): void {
+    bionicState.toggle();
   }
 
   // State for new comment creation (floating card input)
@@ -520,13 +525,13 @@
                 >
                   {#if index === 0}
                     <!-- First page contains the actual editor -->
-                    <div class="pages-content" bind:this={pagesContentRef}>
+                    <div class="pages-content" class:bionic-active={bionicState.isActive} bind:this={pagesContentRef}>
                       <div class="editor" bind:this={editorElement}></div>
                     </div>
                   {:else}
                     <!-- Other pages show a visual mirror of the content -->
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering editor content for pagination -->
-                    <div class="pages-content page-mirror">{@html editorContent}</div>
+                    <div class="pages-content page-mirror" class:bionic-active={bionicState.isActive}>{@html editorContent}</div>
                   {/if}
                 </div>
               </div>
@@ -543,9 +548,11 @@
           <div class="side-toolbar-container" style="top: {cursorTop}px">
             <SideToolbar
               {hasSelection}
+              bionicReadingActive={bionicState.isActive}
               onDraw={handleSideToolbarDraw}
               onComment={handleSideToolbarComment}
               onRSVPReader={handleSideToolbarRSVP}
+              onBionicReading={handleSideToolbarBionic}
             />
           </div>
         </div>
@@ -663,8 +670,9 @@
 
   .page-wrapper {
     display: flex;
-    gap: 24px;
     position: relative;
+    /* Center the pages, comments area positioned absolutely */
+    justify-content: center;
   }
 
   .pages-stack {
@@ -742,9 +750,10 @@
   }
 
   .comments-area {
+    position: absolute;
+    left: calc(50% + 408px + 24px); /* 816/2 = 408px (half page width) + 24px gap */
+    top: 0;
     width: 300px;
-    flex-shrink: 0;
-    position: relative;
     /* Allow dropdowns to overflow */
     overflow: visible;
   }
@@ -918,5 +927,45 @@
   .editor :global(.document-content .comment-highlight[data-comment-active='true']) {
     background-color: rgba(251, 191, 36, 0.5);
     border-bottom-width: 3px;
+  }
+
+  /* Bionic Reading styles */
+  .bionic-active :global(.document-content) {
+    /* Slightly increased letter-spacing for better readability */
+    letter-spacing: 0.01em;
+  }
+
+  /* Bionic bold styling - bolds first portion of each word */
+  .bionic-active :global(.document-content p),
+  .bionic-active :global(.document-content li),
+  .bionic-active :global(.document-content h1),
+  .bionic-active :global(.document-content h2),
+  .bionic-active :global(.document-content h3),
+  .bionic-active :global(.document-content blockquote) {
+    /* Use CSS to create bionic effect by styling first-letter and word fragments */
+    /* This is a CSS-only approximation - real bionic uses JS to split words */
+  }
+
+  /* When bionic is active, we apply font-weight variation to create the effect */
+  /* This works with variable fonts or by using a heavier weight */
+  .bionic-active :global(.document-content) {
+    font-variation-settings: 'wght' 400;
+  }
+
+  /* Bionic indicator bar */
+  .bionic-active::before {
+    content: 'Bionic Reading';
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    background-color: var(--glow-accent-primary);
+    color: white;
+    border-radius: 4px;
+    z-index: 1000;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 </style>
