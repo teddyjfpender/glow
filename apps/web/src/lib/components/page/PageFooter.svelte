@@ -6,6 +6,7 @@
     centerContent?: string;
     rightContent?: string;
     isEditing?: boolean;
+    onEdit?: (section: 'left' | 'center' | 'right', value: string) => void;
   }
 
   const {
@@ -15,7 +16,12 @@
     centerContent = 'Page {pageNumber} of {totalPages}',
     rightContent = '',
     isEditing = false,
+    onEdit,
   }: Props = $props();
+
+  // Track which section is being edited
+  let editingSection: 'left' | 'center' | 'right' | null = $state(null);
+  let editValue = $state('');
 
   /**
    * Replace placeholder variables in content string
@@ -37,39 +43,112 @@
       .replace(/\{date\}/g, formattedDate);
   }
 
+  function startEditing(section: 'left' | 'center' | 'right'): void {
+    if (!isEditing || !onEdit) return;
+    editingSection = section;
+    // Use raw content (not processed) for editing
+    editValue = section === 'left' ? leftContent
+              : section === 'center' ? centerContent
+              : rightContent;
+  }
+
+  function saveEdit(): void {
+    if (editingSection && onEdit) {
+      onEdit(editingSection, editValue);
+    }
+    editingSection = null;
+    editValue = '';
+  }
+
+  function cancelEdit(): void {
+    editingSection = null;
+    editValue = '';
+  }
+
+  function handleKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      saveEdit();
+    } else if (event.key === 'Escape') {
+      cancelEdit();
+    }
+  }
+
   const processedLeft = $derived(replacePlaceholders(leftContent));
   const processedCenter = $derived(replacePlaceholders(centerContent));
   const processedRight = $derived(replacePlaceholders(rightContent));
 </script>
 
 <footer class="page-footer" class:editing={isEditing}>
+  <!-- Left section -->
   <div class="footer-section left">
-    {#if isEditing}
-      <button class="section-button" type="button">
-        {processedLeft || 'Click to edit'}
-      </button>
+    {#if editingSection === 'left'}
+      <input
+        class="section-input"
+        type="text"
+        bind:value={editValue}
+        onblur={saveEdit}
+        onkeydown={handleKeydown}
+        autofocus
+      />
     {:else}
-      <span class="section-content">{processedLeft}</span>
+      <div
+        class="section-content"
+        class:editable={isEditing && !!onEdit}
+        ondblclick={() => startEditing('left')}
+        role={isEditing && onEdit ? 'button' : undefined}
+        tabindex={isEditing && onEdit ? 0 : undefined}
+      >
+        {processedLeft || (isEditing && onEdit ? 'Double-click to edit' : '')}
+      </div>
     {/if}
   </div>
 
+  <!-- Center section -->
   <div class="footer-section center">
-    {#if isEditing}
-      <button class="section-button" type="button">
-        {processedCenter || 'Click to edit'}
-      </button>
+    {#if editingSection === 'center'}
+      <input
+        class="section-input"
+        type="text"
+        bind:value={editValue}
+        onblur={saveEdit}
+        onkeydown={handleKeydown}
+        autofocus
+      />
     {:else}
-      <span class="section-content">{processedCenter}</span>
+      <div
+        class="section-content"
+        class:editable={isEditing && !!onEdit}
+        ondblclick={() => startEditing('center')}
+        role={isEditing && onEdit ? 'button' : undefined}
+        tabindex={isEditing && onEdit ? 0 : undefined}
+      >
+        {processedCenter || (isEditing && onEdit ? 'Double-click to edit' : '')}
+      </div>
     {/if}
   </div>
 
+  <!-- Right section -->
   <div class="footer-section right">
-    {#if isEditing}
-      <button class="section-button" type="button">
-        {processedRight || 'Click to edit'}
-      </button>
+    {#if editingSection === 'right'}
+      <input
+        class="section-input"
+        type="text"
+        bind:value={editValue}
+        onblur={saveEdit}
+        onkeydown={handleKeydown}
+        autofocus
+      />
     {:else}
-      <span class="section-content">{processedRight}</span>
+      <div
+        class="section-content"
+        class:editable={isEditing && !!onEdit}
+        ondblclick={() => startEditing('right')}
+        role={isEditing && onEdit ? 'button' : undefined}
+        tabindex={isEditing && onEdit ? 0 : undefined}
+      >
+        {processedRight || (isEditing && onEdit ? 'Double-click to edit' : '')}
+      </div>
     {/if}
   </div>
 </footer>
@@ -111,35 +190,46 @@
   }
 
   .section-content {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .section-button {
-    background: none;
-    border: 1px dashed transparent;
-    border-radius: 4px;
-    padding: 4px 8px;
     font-size: 10pt;
     color: var(--glow-text-tertiary);
-    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: default;
     transition:
       background-color var(--glow-transition-fast),
       border-color var(--glow-transition-fast);
-    white-space: nowrap;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
+    white-space: nowrap;
+    min-height: 1.5em;
   }
 
-  .section-button:hover {
+  .section-content.editable {
+    cursor: pointer;
+    border: 1px dashed transparent;
+  }
+
+  .section-content.editable:hover {
     background-color: var(--glow-bg-elevated);
     border-color: var(--glow-border-default);
   }
 
-  .section-button:focus {
+  .section-input {
+    font-size: 10pt;
+    color: var(--glow-text-tertiary);
+    background-color: var(--glow-bg-elevated);
+    border: 1px solid var(--glow-border-default);
+    padding: 4px 8px;
+    border-radius: 4px;
     outline: none;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .section-input:focus {
     border-color: var(--glow-accent-primary);
   }
 </style>

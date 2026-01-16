@@ -6,6 +6,7 @@
     centerContent?: string;
     rightContent?: string;
     isEditing?: boolean;
+    onEdit?: (section: 'left' | 'center' | 'right', value: string) => void;
   }
 
   const {
@@ -15,6 +16,7 @@
     centerContent = '',
     rightContent = '',
     isEditing = false,
+    onEdit,
   }: Props = $props();
 
   // Track which section is being edited
@@ -40,15 +42,24 @@
       .replace(/\{date\}/g, dateStr);
   }
 
-  function startEditing(section: 'left' | 'center' | 'right', currentValue: string): void {
-    if (!isEditing) return;
+  function startEditing(section: 'left' | 'center' | 'right'): void {
+    if (!isEditing || !onEdit) return;
     editingSection = section;
-    editValue = currentValue;
+    // Use raw content (not processed) for editing
+    editValue = section === 'left' ? leftContent
+              : section === 'center' ? centerContent
+              : rightContent;
   }
 
-  function finishEditing(): void {
-    // In a real implementation, this would emit an event to update the content
-    // For now, we just close the editing state
+  function saveEdit(): void {
+    if (editingSection && onEdit) {
+      onEdit(editingSection, editValue);
+    }
+    editingSection = null;
+    editValue = '';
+  }
+
+  function cancelEdit(): void {
     editingSection = null;
     editValue = '';
   }
@@ -56,11 +67,9 @@
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      finishEditing();
-    }
-    if (event.key === 'Escape') {
-      editingSection = null;
-      editValue = '';
+      saveEdit();
+    } else if (event.key === 'Escape') {
+      cancelEdit();
     }
   }
 
@@ -78,18 +87,20 @@
         class="section-input"
         type="text"
         bind:value={editValue}
-        onblur={finishEditing}
+        onblur={saveEdit}
         onkeydown={handleKeydown}
+        autofocus
       />
     {:else}
-      <button
+      <div
         class="section-content"
-        class:editable={isEditing}
-        onclick={() => startEditing('left', leftContent)}
-        disabled={!isEditing}
+        class:editable={isEditing && !!onEdit}
+        ondblclick={() => startEditing('left')}
+        role={isEditing && onEdit ? 'button' : undefined}
+        tabindex={isEditing && onEdit ? 0 : undefined}
       >
-        {processedLeft}
-      </button>
+        {processedLeft || (isEditing && onEdit ? 'Double-click to edit' : '')}
+      </div>
     {/if}
   </div>
 
@@ -100,18 +111,20 @@
         class="section-input"
         type="text"
         bind:value={editValue}
-        onblur={finishEditing}
+        onblur={saveEdit}
         onkeydown={handleKeydown}
+        autofocus
       />
     {:else}
-      <button
+      <div
         class="section-content"
-        class:editable={isEditing}
-        onclick={() => startEditing('center', centerContent)}
-        disabled={!isEditing}
+        class:editable={isEditing && !!onEdit}
+        ondblclick={() => startEditing('center')}
+        role={isEditing && onEdit ? 'button' : undefined}
+        tabindex={isEditing && onEdit ? 0 : undefined}
       >
-        {processedCenter}
-      </button>
+        {processedCenter || (isEditing && onEdit ? 'Double-click to edit' : '')}
+      </div>
     {/if}
   </div>
 
@@ -122,18 +135,20 @@
         class="section-input"
         type="text"
         bind:value={editValue}
-        onblur={finishEditing}
+        onblur={saveEdit}
         onkeydown={handleKeydown}
+        autofocus
       />
     {:else}
-      <button
+      <div
         class="section-content"
-        class:editable={isEditing}
-        onclick={() => startEditing('right', rightContent)}
-        disabled={!isEditing}
+        class:editable={isEditing && !!onEdit}
+        ondblclick={() => startEditing('right')}
+        role={isEditing && onEdit ? 'button' : undefined}
+        tabindex={isEditing && onEdit ? 0 : undefined}
       >
-        {processedRight}
-      </button>
+        {processedRight || (isEditing && onEdit ? 'Double-click to edit' : '')}
+      </div>
     {/if}
   </div>
 </header>
@@ -186,18 +201,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-height: 1.5em;
   }
 
   .section-content.editable {
     cursor: pointer;
+    border: 1px dashed transparent;
   }
 
   .section-content.editable:hover {
     background-color: var(--glow-bg-elevated);
-  }
-
-  .section-content:disabled {
-    cursor: default;
+    border-color: var(--glow-border-default);
   }
 
   .section-input {

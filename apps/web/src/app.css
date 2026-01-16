@@ -248,6 +248,95 @@ pre code {
   margin: 2em 0;
 }
 
+/* ==================== Page Break Styles ==================== */
+
+/* Page break node - visual indicator for manual page breaks */
+.page-break-node {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 32px;
+  margin: 1.5em 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.page-break-node::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--glow-border-default) 10%,
+    var(--glow-border-default) 90%,
+    transparent
+  );
+}
+
+.page-break-node::after {
+  content: 'Page Break';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 2px 12px;
+  background-color: var(--glow-bg-surface);
+  color: var(--glow-text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
+  border: 1px solid var(--glow-border-subtle);
+}
+
+/* Page break selected state */
+.page-break-node.ProseMirror-selectednode {
+  outline: none;
+}
+
+.page-break-node.ProseMirror-selectednode::before {
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--glow-accent-primary) 10%,
+    var(--glow-accent-primary) 90%,
+    transparent
+  );
+}
+
+.page-break-node.ProseMirror-selectednode::after {
+  border-color: var(--glow-accent-primary);
+  color: var(--glow-accent-primary);
+}
+
+/* Page break hover state */
+.page-break-node:hover::after {
+  background-color: var(--glow-bg-elevated);
+}
+
+/* Print styles for page breaks */
+@media print {
+  .page-break-node {
+    display: block;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .page-break-node::before,
+  .page-break-node::after {
+    display: none;
+  }
+}
+
 /* Placeholder */
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

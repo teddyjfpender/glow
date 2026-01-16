@@ -1,5 +1,6 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vitest/config';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -53,5 +54,9 @@ export default defineConfig({
   resolve: {
     // Handle Svelte conditions for SSR vs browser
     conditions: ['browser'],
+    // Handle $lib alias for SvelteKit projects
+    alias: {
+      $lib: path.resolve(__dirname, './src/lib'),
+    },
   },
 });

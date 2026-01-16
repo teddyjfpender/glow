@@ -45,6 +45,7 @@
     centerContent={headerConfig.center}
     rightContent={headerConfig.right}
     isEditing={isHeaderEditing}
+    onEdit={onHeaderEdit}
   />
 
   <div class="page-content">
@@ -58,6 +59,7 @@
     centerContent={footerConfig.center}
     rightContent={footerConfig.right}
     isEditing={isFooterEditing}
+    onEdit={onFooterEdit}
   />
 </div>
 

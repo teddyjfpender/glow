@@ -113,15 +113,21 @@ class MockIntersectionObserver {
   private callback: IntersectionObserverCallback;
   readonly root: Element | null = null;
   readonly rootMargin: string = '';
-  readonly thresholds: ReadonlyArray<number> = [];
+  readonly thresholds: readonly number[] = [];
 
   constructor(callback: IntersectionObserverCallback) {
     this.callback = callback;
   }
 
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe(): void {
+    // Mock implementation - no-op
+  }
+  unobserve(): void {
+    // Mock implementation - no-op
+  }
+  disconnect(): void {
+    // Mock implementation - no-op
+  }
   takeRecords(): IntersectionObserverEntry[] {
     return [];
   }
@@ -181,6 +187,7 @@ afterEach(() => {
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Vi {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface Assertion {
       // Add custom matchers here if needed
     }

@@ -26,12 +26,10 @@
   import { rsvpState } from '$lib/state/rsvp.svelte';
   import { bionicState } from '$lib/state/bionic.svelte';
   import { headerFooterState } from '$lib/state/header-footer.svelte';
+  import { paginationState } from '$lib/state/pagination.svelte';
   import {
-    PAGE_WIDTH,
     PAGE_HEIGHT,
-    PAGE_CONTENT_HEIGHT,
     PAGE_GAP,
-    PAGE_MARGIN_TOP,
     HEADER_HEIGHT,
     FOOTER_HEIGHT,
     calculatePageCount,
@@ -52,7 +50,9 @@
 
   // Page count based on content height
   let pageCount = $state(1);
-  let contentHeight = $state(0);
+
+  // Calculate total container height for all pages
+  const totalPagesHeight = $derived(pageCount * PAGE_HEIGHT + Math.max(0, pageCount - 1) * PAGE_GAP);
 
   // Editor content HTML for bionic reading overlay
   let editorContent = $state('');
@@ -66,6 +66,9 @@
   // Track selection state for side toolbar
   let hasSelection = $state(false);
 
+  // Actual content area height per page (page height minus header and footer)
+  const CONTENT_AREA_HEIGHT = PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT; // 924px
+
   // Update cached editor content and calculate page count
   function updateEditorContent(): void {
     if (!editor) return;
@@ -74,9 +77,26 @@
     // Calculate page count based on editor content height
     if (editorWrapperRef) {
       const height = editorWrapperRef.scrollHeight;
-      contentHeight = height;
-      pageCount = calculatePageCount(height, PAGE_CONTENT_HEIGHT);
+      // Use actual content area height for accurate page calculation
+      const newPageCount = calculatePageCount(height, CONTENT_AREA_HEIGHT);
+      pageCount = newPageCount;
+      // Sync with pagination state
+      paginationState.setPageCount(newPageCount);
     }
+  }
+
+  // Handle scroll to track current page
+  function handleScroll(): void {
+    if (!documentAreaRef) return;
+    const scrollY = documentAreaRef.scrollTop;
+    // Calculate which page is currently visible based on scroll position
+    // Each page unit = PAGE_HEIGHT + PAGE_GAP
+    const pageUnit = PAGE_HEIGHT + PAGE_GAP;
+    const currentPage = Math.floor(scrollY / pageUnit) + 1;
+    paginationState.setCurrentPage(Math.min(currentPage, pageCount));
+    paginationState.setScrollPosition(scrollY);
+    // Also update comment positions on scroll
+    updateCommentPositions();
   }
 
   // Update cursor position for side toolbar
@@ -522,28 +542,72 @@
     <div
       class="document-area"
       bind:this={documentAreaRef}
-      onscroll={updateCommentPositions}
+      onscroll={handleScroll}
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="pages-container" bind:this={pagesContentRef}>
-          <!-- Single page frame that grows with content -->
-          <div class="page-frame" bind:this={editorWrapperRef}>
-            <!-- Content area - single continuous editor -->
-            <div class="page-content-area">
-              <div class="editor" bind:this={editorElement}></div>
-            </div>
+        <div
+          class="pages-container"
+          bind:this={pagesContentRef}
+          style="min-height: {totalPagesHeight}px"
+        >
+          <!-- Layer 1: Page backgrounds -->
+          {#each Array(pageCount) as _, pageIndex}
+            {@const pageTop = pageIndex * (PAGE_HEIGHT + PAGE_GAP)}
+            <div
+              class="page-background"
+              style="top: {pageTop}px"
+            ></div>
+          {/each}
 
-            <!-- Visual page break indicators -->
-            {#each Array(Math.max(0, pageCount - 1)) as _, breakIndex}
-              {@const breakY = (breakIndex + 1) * PAGE_CONTENT_HEIGHT}
-              <div class="page-break-indicator" style="top: calc(96px + {breakY}px)">
-                <div class="page-break-line"></div>
-                <span class="page-break-label">Page {breakIndex + 1} | Page {breakIndex + 2}</span>
-                <div class="page-break-line"></div>
-              </div>
-            {/each}
+          <!-- Layer 2: Single continuous editor with padding for headers/footers -->
+          <div
+            class="editor-continuous-wrapper"
+            bind:this={editorWrapperRef}
+          >
+            <div class="editor" bind:this={editorElement}></div>
           </div>
+
+          <!-- Layer 3: Page gaps (visual separator between pages) -->
+          {#each Array(Math.max(0, pageCount - 1)) as _, gapIndex}
+            {@const gapTop = (gapIndex + 1) * PAGE_HEIGHT + gapIndex * PAGE_GAP}
+            <div
+              class="page-gap-mask"
+              style="top: {gapTop}px; height: {PAGE_GAP}px"
+            ></div>
+          {/each}
+
+          <!-- Layer 4: Page headers -->
+          {#each Array(pageCount) as _, pageIndex}
+            {@const pageNumber = pageIndex + 1}
+            {@const pageConfig = headerFooterState.getConfigForPage(pageNumber, pageCount)}
+            {@const pageTop = pageIndex * (PAGE_HEIGHT + PAGE_GAP)}
+
+            <div
+              class="page-header-decoration"
+              style="top: {pageTop}px"
+            >
+              <span class="header-left">{pageConfig.header?.left || ''}</span>
+              <span class="header-center">{pageConfig.header?.center || ''}</span>
+              <span class="header-right">{pageConfig.header?.right || ''}</span>
+            </div>
+          {/each}
+
+          <!-- Layer 5: Page footers -->
+          {#each Array(pageCount) as _, pageIndex}
+            {@const pageNumber = pageIndex + 1}
+            {@const pageConfig = headerFooterState.getConfigForPage(pageNumber, pageCount)}
+            {@const pageTop = pageIndex * (PAGE_HEIGHT + PAGE_GAP)}
+
+            <div
+              class="page-footer-decoration"
+              style="top: {pageTop + PAGE_HEIGHT - FOOTER_HEIGHT}px"
+            >
+              <span class="footer-left">{pageConfig.footer?.left || ''}</span>
+              <span class="footer-center">{pageConfig.footer?.center || `Page ${pageNumber} of ${pageCount}`}</span>
+              <span class="footer-right">{pageConfig.footer?.right || ''}</span>
+            </div>
+          {/each}
 
           <!-- Side Toolbar follows cursor position -->
           <div class="side-toolbar-container" style="top: {cursorTop}px">
@@ -588,7 +652,7 @@
       {#if pageCount > 1}
         <div class="page-nav-footer">
           <div class="page-nav-content">
-            <span class="page-indicator">Page 1 of {pageCount}</span>
+            <span class="page-indicator">Page {paginationState.currentPage} of {pageCount}</span>
             <span class="page-hint">Scroll to navigate pages</span>
           </div>
         </div>
@@ -693,59 +757,80 @@
 
   .pages-container {
     position: relative;
+    width: 816px;
   }
 
-  /* Single page frame that grows with content */
-  .page-frame {
-    position: relative;
+  /* Layer 1: Page backgrounds */
+  .page-background {
+    position: absolute;
+    left: 0;
     width: 816px;
-    min-height: 1056px;
+    height: 1056px;
     background-color: #121212;
     border-radius: 2px;
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.3),
       0 4px 12px rgb(0 0 0 / 0.2);
+    z-index: 1;
   }
 
-  /* Content area with page margins */
-  .page-content-area {
-    padding: 96px 96px 72px 96px;
+  /* Layer 2: Continuous editor */
+  .editor-continuous-wrapper {
+    position: relative;
+    z-index: 2;
+    width: 816px;
+    padding: 72px 96px 60px 96px; /* header, right, footer, left */
+    min-height: 1056px;
   }
 
-  /* Visual page break indicators */
-  .page-break-indicator {
+  /* Layer 3: Page gap masks (hide content between pages) */
+  .page-gap-mask {
     position: absolute;
     left: 0;
-    right: 0;
+    width: 816px;
+    background-color: #525659;
+    z-index: 3;
+  }
+
+  /* Layer 4: Header decorations */
+  .page-header-decoration {
+    position: absolute;
+    left: 0;
+    width: 816px;
+    height: 72px;
+    padding: 0 96px;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 24px;
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  .page-break-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      var(--glow-border-default) 20%,
-      var(--glow-border-default) 80%,
-      transparent
-    );
-  }
-
-  .page-break-label {
+    align-items: flex-end;
+    padding-bottom: 12px;
+    background-color: #121212;
+    border-bottom: 1px solid var(--glow-border-subtle);
     font-size: 10px;
     color: var(--glow-text-tertiary);
-    white-space: nowrap;
-    padding: 4px 12px;
-    background-color: var(--glow-bg-elevated);
-    border-radius: 12px;
-    border: 1px solid var(--glow-border-subtle);
+    z-index: 4;
+    pointer-events: none;
   }
+
+  /* Layer 4: Footer decorations */
+  .page-footer-decoration {
+    position: absolute;
+    left: 0;
+    width: 816px;
+    height: 60px;
+    padding: 0 96px;
+    display: flex;
+    align-items: center;
+    padding-top: 12px;
+    background-color: #121212;
+    border-top: 1px solid var(--glow-border-subtle);
+    font-size: 10px;
+    color: var(--glow-text-tertiary);
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .header-left, .footer-left { text-align: left; flex: 1; }
+  .header-center, .footer-center { text-align: center; flex: 1; }
+  .header-right, .footer-right { text-align: right; flex: 1; }
 
   /* Page Navigation Footer */
   .page-nav-footer {
