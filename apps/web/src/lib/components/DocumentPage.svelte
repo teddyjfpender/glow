@@ -22,6 +22,7 @@
   import { createDefaultAuthor, type ReactionEmoji, type Comment } from '$lib/comments/types';
   import SideToolbar from './SideToolbar.svelte';
   import RSVPReader from './rsvp/RSVPReader.svelte';
+  import BionicOverlay from './BionicOverlay.svelte';
   import { rsvpState } from '$lib/state/rsvp.svelte';
   import { bionicState } from '$lib/state/bionic.svelte';
 
@@ -31,20 +32,13 @@
 
   const { onEditorReady }: Props = $props();
 
-  // Page dimensions (US Letter at 96 DPI)
-  const PAGE_HEIGHT = 1056;
-  const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - 96 - 72; // minus padding top (96) and bottom (72)
-
   let editorElement: HTMLDivElement;
   let documentAreaRef = $state<HTMLDivElement | null>(null);
   let pagesContentRef = $state<HTMLDivElement | null>(null);
   let editor: Editor | null = $state(null);
   let lastSyncedContent = '';
 
-  // Page count based on content height
-  let pageCount = $state(1);
-
-  // Editor content HTML for page mirrors (non-editable pages)
+  // Editor content HTML for bionic reading overlay
   let editorContent = $state('');
 
   // Cursor position for side toolbar
@@ -56,17 +50,10 @@
   // Track selection state for side toolbar
   let hasSelection = $state(false);
 
-  // Calculate page count based on content height
-  function updatePageCount(): void {
-    if (!pagesContentRef || !editor) return;
-    const height = pagesContentRef.scrollHeight;
-    // Calculate how many pages we need based on content height
-    const pages = Math.max(1, Math.ceil(height / PAGE_CONTENT_HEIGHT));
-    pageCount = pages;
-    // Update editor content HTML for page mirrors
-    if (pages > 1) {
-      editorContent = editor.getHTML();
-    }
+  // Update cached editor content (used for bionic reading overlay)
+  function updateEditorContent(): void {
+    if (!editor) return;
+    editorContent = editor.getHTML();
   }
 
   // Update cursor position for side toolbar
@@ -120,7 +107,7 @@
 
     const handleUpdate = (): void => {
       requestAnimationFrame(() => {
-        updatePageCount();
+        updateEditorContent();
         updateCursorPosition();
       });
     };
@@ -211,6 +198,10 @@
   }
 
   function handleSideToolbarBionic(): void {
+    // Update editor content before showing bionic overlay
+    if (editor && !bionicState.isActive) {
+      editorContent = editor.getHTML();
+    }
     bionicState.toggle();
   }
 
@@ -512,39 +503,16 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="pages-stack">
-          {#each Array(pageCount) as _, index}
-            <!-- Page frame with clipped content viewport -->
-            <div class="page-frame">
-              <div class="page-content-viewport">
-                <!-- Content shifted to show the correct portion for this page -->
-                <div
-                  class="page-content-shifter"
-                  class:is-editor-page={index === 0}
-                  style="transform: translateY(-{index * PAGE_CONTENT_HEIGHT}px)"
-                >
-                  {#if index === 0}
-                    <!-- First page contains the actual editor -->
-                    <div class="pages-content" class:bionic-active={bionicState.isActive} bind:this={pagesContentRef}>
-                      <div class="editor" bind:this={editorElement}></div>
-                    </div>
-                  {:else}
-                    <!-- Other pages show a visual mirror of the content -->
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering editor content for pagination -->
-                    <div class="pages-content page-mirror" class:bionic-active={bionicState.isActive}>{@html editorContent}</div>
-                  {/if}
-                </div>
-              </div>
-              <span class="page-number-badge">Page {index + 1}</span>
+        <div class="pages-container">
+          <!-- Single page frame that grows with content -->
+          <div class="page-frame" bind:this={pagesContentRef}>
+            <!-- Content area -->
+            <div class="page-content-area">
+              <div class="editor" bind:this={editorElement}></div>
             </div>
+          </div>
 
-            <!-- Gap between pages -->
-            {#if index < pageCount - 1}
-              <div class="page-gap"></div>
-            {/if}
-          {/each}
-
-          <!-- Side Toolbar follows cursor position (positioned relative to first page) -->
+          <!-- Side Toolbar follows cursor position -->
           <div class="side-toolbar-container" style="top: {cursorTop}px">
             <SideToolbar
               {hasSelection}
@@ -603,6 +571,11 @@
     onSpeedChange={(wpm: number) => rsvpState.setSpeed(wpm)}
     onSeek={(index: number) => rsvpState.seekTo(index)}
   />
+{/if}
+
+<!-- Bionic Reading (fullscreen overlay) -->
+{#if bionicState.isActive}
+  <BionicOverlay html={editorContent || editor?.getHTML() || ''} />
 {/if}
 
 <style>
@@ -675,70 +648,25 @@
     justify-content: center;
   }
 
-  .pages-stack {
-    display: flex;
-    flex-direction: column;
+  .pages-container {
     position: relative;
   }
 
-  /* Individual page frame - creates the visual page card */
+  /* Single page frame that grows with content */
   .page-frame {
     position: relative;
     width: 816px;
-    height: 1056px;
+    min-height: 1056px;
     background-color: #121212;
     border-radius: 2px;
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.3),
       0 4px 12px rgb(0 0 0 / 0.2);
-    flex-shrink: 0;
   }
 
-  /* Viewport that clips content to page boundaries */
-  .page-content-viewport {
-    position: absolute;
-    top: 96px; /* Header padding */
-    left: 96px;
-    right: 96px;
-    bottom: 72px; /* Footer padding */
-    overflow: hidden;
-  }
-
-  /* Shifts content to show the correct portion for each page */
-  .page-content-shifter {
-    position: relative;
-  }
-
-  /* Gap between pages */
-  .page-gap {
-    height: 40px;
-    width: 816px;
-    flex-shrink: 0;
-  }
-
-  /* Page number badge */
-  .page-number-badge {
-    position: absolute;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    color: var(--glow-text-tertiary, #666);
-    padding: 2px 12px;
-    border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.05);
-    z-index: 10;
-  }
-
-  /* Content container */
-  .pages-content {
-    width: 624px; /* 816 - 96 - 96 = 624 */
-  }
-
-  /* Mirror pages (non-editable) */
-  .page-mirror {
-    pointer-events: none;
-    user-select: none;
+  /* Content area with page margins */
+  .page-content-area {
+    padding: 96px 96px 72px 96px;
   }
 
   /* Side toolbar container */
@@ -929,43 +857,4 @@
     border-bottom-width: 3px;
   }
 
-  /* Bionic Reading styles */
-  .bionic-active :global(.document-content) {
-    /* Slightly increased letter-spacing for better readability */
-    letter-spacing: 0.01em;
-  }
-
-  /* Bionic bold styling - bolds first portion of each word */
-  .bionic-active :global(.document-content p),
-  .bionic-active :global(.document-content li),
-  .bionic-active :global(.document-content h1),
-  .bionic-active :global(.document-content h2),
-  .bionic-active :global(.document-content h3),
-  .bionic-active :global(.document-content blockquote) {
-    /* Use CSS to create bionic effect by styling first-letter and word fragments */
-    /* This is a CSS-only approximation - real bionic uses JS to split words */
-  }
-
-  /* When bionic is active, we apply font-weight variation to create the effect */
-  /* This works with variable fonts or by using a heavier weight */
-  .bionic-active :global(.document-content) {
-    font-variation-settings: 'wght' 400;
-  }
-
-  /* Bionic indicator bar */
-  .bionic-active::before {
-    content: 'Bionic Reading';
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 10px;
-    background-color: var(--glow-accent-primary);
-    color: white;
-    border-radius: 4px;
-    z-index: 1000;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
 </style>
