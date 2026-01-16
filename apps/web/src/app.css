@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
 
 /* ============================================
    GLOW DESIGN TOKENS
@@ -273,6 +274,53 @@ pre code {
 .comment-highlight[data-comment-active="true"] {
   background-color: var(--glow-comment-highlight-active);
   border-bottom-color: var(--glow-comment-underline-active);
+}
+
+/* ==================== LaTeX Math Equations ==================== */
+
+/* Override KaTeX colors for dark mode */
+.katex {
+  color: var(--glow-text-primary);
+}
+
+.katex .mathnormal,
+.katex .mathit,
+.katex .mathrm,
+.katex .mathbf,
+.katex .mathsf,
+.katex .mathtt,
+.katex .mathbb,
+.katex .mathcal,
+.katex .mathfrak,
+.katex .mathscr {
+  color: var(--glow-text-primary);
+}
+
+.katex .mord,
+.katex .mop,
+.katex .mbin,
+.katex .mrel,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct,
+.katex .minner {
+  color: var(--glow-text-primary);
+}
+
+/* Error styling */
+.katex-error {
+  color: var(--glow-accent-error) !important;
+}
+
+/* Display mode equations */
+.katex-display {
+  margin: 1em 0;
+  text-align: center;
+}
+
+.katex-display > .katex {
+  display: inline-block;
+  text-align: initial;
 }
 
 /* ============================================

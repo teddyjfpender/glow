@@ -41,5 +41,8 @@
   },
   "trustedDependencies": [
     "lefthook"
-  ]
+  ],
+  "dependencies": {
+    "katex": "^0.16.27"
+  }
 }

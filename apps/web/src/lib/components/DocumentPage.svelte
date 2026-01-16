@@ -13,6 +13,7 @@
   import { FontSize } from '$lib/editor/extensions/font-size';
   import { ExcalidrawExtension } from '$lib/editor/extensions/excalidraw';
   import { CommentMark } from '$lib/editor/extensions/comment-mark';
+  import { LatexExtension } from '$lib/editor/extensions/latex';
   import Toolbar from './Toolbar.svelte';
   import { CommentCardsContainer } from '$lib/components/comments';
   import { documentState } from '$lib/state/document.svelte';
@@ -306,6 +307,7 @@
           defaultTheme: 'dark',
         }),
         CommentMark,
+        LatexExtension,
       ],
       content: documentState.content,
       editorProps: {

@@ -932,6 +932,36 @@
         <line x1="8" y1="10" x2="16" y2="10" />
       </svg>
     </button>
+    <button
+      class="tool-button"
+      onclick={() => {
+        if (editor) editor.chain().focus().insertLatex().run();
+      }}
+      title="Insert equation (Ctrl+Shift+M)"
+      aria-label="Insert equation"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <text
+          x="4"
+          y="18"
+          font-size="14"
+          font-family="serif"
+          font-style="italic"
+          stroke="none"
+          fill="currentColor"
+        >
+          ∑
+        </text>
+        <path d="M14 7l3 5-3 5" />
+      </svg>
+    </button>
     <button class="tool-button" title="Insert image" aria-label="Insert image">
       <svg
         width="18"
