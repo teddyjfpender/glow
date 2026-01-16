@@ -455,72 +455,86 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="page-container">
-          <div class="page">
-            <div class="editor" bind:this={editorElement}></div>
-          </div>
+        <div class="pages-stack">
+          {#each documentState.pages as page, index (page.id)}
+            <!-- Page break between pages -->
+            {#if index > 0}
+              <div class="page-break">
+                <div class="page-break-line"></div>
+              </div>
+            {/if}
 
-          <!-- Page Navigation UI -->
-          <div class="page-navigation">
+            <div class="page-container" class:active={index === documentState.currentPageIndex}>
+              <!-- Page number indicator -->
+              <div class="page-number">Page {index + 1}</div>
+
+              <div
+                class="page"
+                class:editable={index === documentState.currentPageIndex}
+                onclick={() => {
+                  if (index !== documentState.currentPageIndex) {
+                    documentState.goToPage(index);
+                  }
+                }}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter' && index !== documentState.currentPageIndex) {
+                    documentState.goToPage(index);
+                  }
+                }}
+                role="button"
+                tabindex={index === documentState.currentPageIndex ? -1 : 0}
+              >
+                {#if index === documentState.currentPageIndex}
+                  <div class="editor" bind:this={editorElement}></div>
+                {:else}
+                  <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering saved document content -->
+                  <div class="page-content-preview document-content">{@html page.content || '<p class="empty-page-hint">Click to edit this page</p>'}</div>
+                {/if}
+              </div>
+
+              <!-- Page actions (delete) - only show for non-active pages with multiple pages -->
+              {#if documentState.totalPages > 1 && index !== documentState.currentPageIndex}
+                <button
+                  class="page-delete-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    documentState.deletePage(index);
+                  }}
+                  title="Delete this page"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              {/if}
+
+              <!-- Side Toolbar - only show on active page -->
+              {#if index === documentState.currentPageIndex}
+                <SideToolbar
+                  {hasSelection}
+                  onDraw={handleSideToolbarDraw}
+                  onComment={handleSideToolbarComment}
+                  onRSVPReader={handleSideToolbarRSVP}
+                />
+              {/if}
+            </div>
+          {/each}
+
+          <!-- Add page button at the end -->
+          <div class="add-page-section">
             <button
-              class="page-nav-btn"
-              onclick={() => documentState.prevPage()}
-              disabled={documentState.currentPageIndex === 0}
-              title="Previous page"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-
-            <span class="page-indicator">
-              Page {documentState.currentPageIndex + 1} of {documentState.totalPages}
-            </span>
-
-            <button
-              class="page-nav-btn"
-              onclick={() => documentState.nextPage()}
-              disabled={documentState.currentPageIndex >= documentState.totalPages - 1}
-              title="Next page"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-
-            <button
-              class="page-nav-btn add-page-btn"
+              class="add-page-btn"
               onclick={() => documentState.addPage()}
               title="Add new page"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
               <span>Add Page</span>
             </button>
-
-            {#if documentState.totalPages > 1}
-              <button
-                class="page-nav-btn delete-page-btn"
-                onclick={() => documentState.deletePage(documentState.currentPageIndex)}
-                title="Delete current page"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-            {/if}
           </div>
-
-          <!-- Side Toolbar attached to the right edge of the page -->
-          <SideToolbar
-            {hasSelection}
-            onDraw={handleSideToolbarDraw}
-            onComment={handleSideToolbarComment}
-            onRSVPReader={handleSideToolbarRSVP}
-          />
         </div>
 
         <!-- Floating comment cards positioned to the right of the page -->
@@ -640,6 +654,12 @@
     position: relative;
   }
 
+  .pages-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   .page-container {
     position: relative;
     flex-shrink: 0;
@@ -648,68 +668,107 @@
     align-items: center;
   }
 
-  .page-navigation {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 16px;
-    padding: 8px 16px;
-    background-color: var(--glow-bg-elevated, #1e1e1e);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
-  }
-
-  .page-nav-btn {
+  /* Page break between pages */
+  .page-break {
+    width: 816px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background-color: transparent;
-    border: 1px solid var(--glow-border-subtle, #3a3a3a);
+    position: relative;
+  }
+
+  .page-break-line {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.15) 10%,
+      rgba(255, 255, 255, 0.15) 90%,
+      transparent
+    );
+    position: relative;
+  }
+
+  .page-break-line::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 3px;
+    background-color: #525659;
+  }
+
+  /* Page number indicator */
+  .page-number {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--glow-text-tertiary, #666);
+    background-color: #525659;
+    padding: 2px 12px;
     border-radius: 4px;
+    z-index: 10;
+  }
+
+  /* Page delete button for inactive pages */
+  .page-delete-btn {
+    position: absolute;
+    top: 8px;
+    right: -36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: var(--glow-error, #ef4444);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s ease;
+  }
+
+  .page-container:hover .page-delete-btn {
+    opacity: 1;
+  }
+
+  .page-delete-btn:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+
+  /* Add page section at the end */
+  .add-page-section {
+    margin-top: 24px;
+    margin-bottom: 40px;
+  }
+
+  .add-page-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background-color: var(--glow-bg-elevated, #1e1e1e);
+    border: 2px dashed var(--glow-border-default, #3a3a3a);
+    border-radius: 8px;
     color: var(--glow-text-secondary, #a0a0a0);
     cursor: pointer;
+    font-size: 14px;
     transition: all 0.15s ease;
-    font-size: 13px;
   }
 
-  .page-nav-btn:hover:not(:disabled) {
+  .add-page-btn:hover {
     background-color: var(--glow-bg-surface, #2a2a2a);
-    color: var(--glow-text-primary, #e0e0e0);
-    border-color: var(--glow-border-default, #4a4a4a);
-  }
-
-  .page-nav-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .page-nav-btn.add-page-btn {
-    background-color: var(--glow-accent-primary, #3b82f6);
     border-color: var(--glow-accent-primary, #3b82f6);
-    color: white;
-  }
-
-  .page-nav-btn.add-page-btn:hover {
-    background-color: var(--glow-accent-hover, #2563eb);
-    border-color: var(--glow-accent-hover, #2563eb);
-  }
-
-  .page-nav-btn.delete-page-btn {
-    color: var(--glow-error, #ef4444);
-    border-color: var(--glow-error, #ef4444);
-  }
-
-  .page-nav-btn.delete-page-btn:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-  }
-
-  .page-indicator {
-    font-size: 13px;
-    color: var(--glow-text-secondary, #a0a0a0);
-    min-width: 100px;
-    text-align: center;
+    color: var(--glow-accent-primary, #3b82f6);
   }
 
   .page {
@@ -722,6 +781,79 @@
       0 4px 12px rgb(0 0 0 / 0.2);
     padding: 96px 96px 72px;
     flex-shrink: 0;
+    transition: box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+
+  /* Non-editable pages are clickable */
+  .page:not(.editable) {
+    cursor: pointer;
+    opacity: 0.85;
+  }
+
+  .page:not(.editable):hover {
+    opacity: 1;
+    box-shadow:
+      0 1px 3px rgb(0 0 0 / 0.3),
+      0 4px 12px rgb(0 0 0 / 0.2),
+      0 0 0 2px var(--glow-accent-primary, #3b82f6);
+  }
+
+  /* Active page indicator */
+  .page-container.active .page {
+    box-shadow:
+      0 1px 3px rgb(0 0 0 / 0.3),
+      0 4px 12px rgb(0 0 0 / 0.2),
+      0 0 0 2px var(--glow-accent-primary, #3b82f6);
+  }
+
+  /* Page content preview for non-active pages */
+  .page-content-preview {
+    min-height: 100%;
+    font-family: var(--glow-font-sans);
+    font-size: 11pt;
+    line-height: 1.5;
+    color: var(--glow-text-primary);
+  }
+
+  .page-content-preview :global(p) {
+    margin: 0 0 12px 0;
+  }
+
+  .page-content-preview :global(h1) {
+    font-size: 26pt;
+    font-weight: 400;
+    margin: 24px 0 12px 0;
+    line-height: 1.2;
+  }
+
+  .page-content-preview :global(h2) {
+    font-size: 18pt;
+    font-weight: 400;
+    margin: 20px 0 10px 0;
+    line-height: 1.3;
+  }
+
+  .page-content-preview :global(h3) {
+    font-size: 14pt;
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+    line-height: 1.4;
+  }
+
+  .page-content-preview :global(ul),
+  .page-content-preview :global(ol) {
+    margin: 0 0 12px 0;
+    padding-left: 24px;
+  }
+
+  .page-content-preview :global(li) {
+    margin-bottom: 4px;
+  }
+
+  /* Empty page hint */
+  .page-content-preview :global(.empty-page-hint) {
+    color: var(--glow-text-tertiary, #666);
+    font-style: italic;
   }
 
   .comments-area {
