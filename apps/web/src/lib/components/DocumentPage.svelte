@@ -30,17 +30,52 @@
 
   const { onEditorReady }: Props = $props();
 
+  // Page dimensions (US Letter at 96 DPI)
+  const PAGE_HEIGHT = 1056;
+  const PAGE_GAP = 40; // Gap between pages
+  const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - 96 - 72; // minus padding top and bottom
+
   let editorElement: HTMLDivElement;
   let documentAreaRef = $state<HTMLDivElement | null>(null);
+  let pagesContentRef = $state<HTMLDivElement | null>(null);
   let editor: Editor | null = $state(null);
   let lastSyncedContent = '';
-  let lastPageIndex = $state(0); // Track the last page index to detect page changes
+
+  // Page count based on content height
+  let pageCount = $state(1);
+
+  // Cursor position for side toolbar
+  let cursorTop = $state(100);
 
   // Comment system state
   const currentAuthor = createDefaultAuthor();
 
   // Track selection state for side toolbar
   let hasSelection = $state(false);
+
+  // Calculate page count based on content height
+  function updatePageCount(): void {
+    if (!pagesContentRef) return;
+    const height = pagesContentRef.scrollHeight;
+    // Calculate how many pages we need based on content height
+    const pages = Math.max(1, Math.ceil(height / PAGE_CONTENT_HEIGHT));
+    pageCount = pages;
+  }
+
+  // Update cursor position for side toolbar
+  function updateCursorPosition(): void {
+    if (!editor || !pagesContentRef) return;
+    try {
+      const { from } = editor.state.selection;
+      const coords = editor.view.coordsAtPos(from);
+      const containerRect = pagesContentRef.getBoundingClientRect();
+      // Calculate position relative to the pages content container
+      const relativeTop = coords.top - containerRect.top + pagesContentRef.scrollTop;
+      cursorTop = Math.max(50, relativeTop);
+    } catch {
+      // Position might be invalid
+    }
+  }
 
   // RSVP playback interval
   let rsvpInterval: ReturnType<typeof setInterval> | null = null;
@@ -72,16 +107,27 @@
     drawingEditorState.activateOverlay();
   }
 
-  // Watch for page changes - load content when switching pages
+  // Track cursor position and page count on editor updates
   $effect(() => {
-    const currentPageIndex = documentState.currentPageIndex;
-    if (editor && currentPageIndex !== lastPageIndex) {
-      // Page changed - load the new page's content
-      const newContent = documentState.content;
-      editor.commands.setContent(newContent);
-      lastSyncedContent = newContent;
-      lastPageIndex = currentPageIndex;
-    }
+    if (!editor) return;
+
+    const handleUpdate = (): void => {
+      requestAnimationFrame(() => {
+        updatePageCount();
+        updateCursorPosition();
+      });
+    };
+
+    editor.on('transaction', handleUpdate);
+    editor.on('selectionUpdate', updateCursorPosition);
+
+    // Initial calculation
+    handleUpdate();
+
+    return () => {
+      editor.off('transaction', handleUpdate);
+      editor.off('selectionUpdate', updateCursorPosition);
+    };
   });
 
   // Watch for external content changes (from loading documents)
@@ -455,86 +501,29 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="pages-stack">
-          {#each documentState.pages as page, index (page.id)}
-            <!-- Page break between pages -->
-            {#if index > 0}
-              <div class="page-break">
-                <div class="page-break-line"></div>
+        <div class="page-container">
+          <!-- Visual page backgrounds with gaps between them -->
+          <div class="pages-background">
+            {#each Array(pageCount) as _, index}
+              <div class="page-frame" style="top: {index * (PAGE_HEIGHT + PAGE_GAP)}px">
+                <span class="page-number-badge">Page {index + 1}</span>
               </div>
-            {/if}
-
-            <div class="page-container" class:active={index === documentState.currentPageIndex}>
-              <!-- Page number indicator -->
-              <div class="page-number">Page {index + 1}</div>
-
-              <div
-                class="page"
-                class:editable={index === documentState.currentPageIndex}
-                onclick={() => {
-                  if (index !== documentState.currentPageIndex) {
-                    documentState.goToPage(index);
-                  }
-                }}
-                onkeydown={(e) => {
-                  if (e.key === 'Enter' && index !== documentState.currentPageIndex) {
-                    documentState.goToPage(index);
-                  }
-                }}
-                role="button"
-                tabindex={index === documentState.currentPageIndex ? -1 : 0}
-              >
-                {#if index === documentState.currentPageIndex}
-                  <div class="editor" bind:this={editorElement}></div>
-                {:else}
-                  <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering saved document content -->
-                  <div class="page-content-preview document-content">{@html page.content || '<p class="empty-page-hint">Click to edit this page</p>'}</div>
-                {/if}
-              </div>
-
-              <!-- Page actions (delete) - only show for non-active pages with multiple pages -->
-              {#if documentState.totalPages > 1 && index !== documentState.currentPageIndex}
-                <button
-                  class="page-delete-btn"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    documentState.deletePage(index);
-                  }}
-                  title="Delete this page"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
-              {/if}
-
-              <!-- Side Toolbar - only show on active page -->
-              {#if index === documentState.currentPageIndex}
-                <SideToolbar
-                  {hasSelection}
-                  onDraw={handleSideToolbarDraw}
-                  onComment={handleSideToolbarComment}
-                  onRSVPReader={handleSideToolbarRSVP}
-                />
-              {/if}
-            </div>
-          {/each}
-
-          <!-- Add page button at the end -->
-          <div class="add-page-section">
-            <button
-              class="add-page-btn"
-              onclick={() => documentState.addPage()}
-              title="Add new page"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>Add Page</span>
-            </button>
+            {/each}
           </div>
+
+          <!-- Single continuous editor that flows across pages -->
+          <div class="pages-content" bind:this={pagesContentRef}>
+            <div class="editor" bind:this={editorElement}></div>
+          </div>
+
+          <!-- Side Toolbar follows cursor position -->
+          <SideToolbar
+            {hasSelection}
+            top={cursorTop}
+            onDraw={handleSideToolbarDraw}
+            onComment={handleSideToolbarComment}
+            onRSVPReader={handleSideToolbarRSVP}
+          />
         </div>
 
         <!-- Floating comment cards positioned to the right of the page -->
@@ -654,206 +643,56 @@
     position: relative;
   }
 
-  .pages-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
   .page-container {
     position: relative;
+    width: 816px;
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
   }
 
-  /* Page break between pages */
-  .page-break {
-    width: 816px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-
-  .page-break-line {
+  /* Visual page frames container - positioned behind content */
+  .pages-background {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 255, 255, 0.15) 10%,
-      rgba(255, 255, 255, 0.15) 90%,
-      transparent
-    );
-    position: relative;
+    pointer-events: none;
+    z-index: 0;
   }
 
-  .page-break-line::before {
-    content: '';
+  /* Individual page frame - creates the visual page card */
+  .page-frame {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 3px;
-    background-color: #525659;
-  }
-
-  /* Page number indicator */
-  .page-number {
-    position: absolute;
-    top: -24px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    color: var(--glow-text-tertiary, #666);
-    background-color: #525659;
-    padding: 2px 12px;
-    border-radius: 4px;
-    z-index: 10;
-  }
-
-  /* Page delete button for inactive pages */
-  .page-delete-btn {
-    position: absolute;
-    top: 8px;
-    right: -36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background-color: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 6px;
-    color: var(--glow-error, #ef4444);
-    cursor: pointer;
-    opacity: 0;
-    transition: all 0.15s ease;
-  }
-
-  .page-container:hover .page-delete-btn {
-    opacity: 1;
-  }
-
-  .page-delete-btn:hover {
-    background-color: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.5);
-  }
-
-  /* Add page section at the end */
-  .add-page-section {
-    margin-top: 24px;
-    margin-bottom: 40px;
-  }
-
-  .add-page-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background-color: var(--glow-bg-elevated, #1e1e1e);
-    border: 2px dashed var(--glow-border-default, #3a3a3a);
-    border-radius: 8px;
-    color: var(--glow-text-secondary, #a0a0a0);
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.15s ease;
-  }
-
-  .add-page-btn:hover {
-    background-color: var(--glow-bg-surface, #2a2a2a);
-    border-color: var(--glow-accent-primary, #3b82f6);
-    color: var(--glow-accent-primary, #3b82f6);
-  }
-
-  .page {
+    left: 0;
     width: 816px;
-    min-height: 1056px;
+    height: 1056px;
     background-color: #121212;
     border-radius: 2px;
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.3),
       0 4px 12px rgb(0 0 0 / 0.2);
-    padding: 96px 96px 72px;
-    flex-shrink: 0;
-    transition: box-shadow 0.15s ease, opacity 0.15s ease;
   }
 
-  /* Non-editable pages are clickable */
-  .page:not(.editable) {
-    cursor: pointer;
-    opacity: 0.85;
-  }
-
-  .page:not(.editable):hover {
-    opacity: 1;
-    box-shadow:
-      0 1px 3px rgb(0 0 0 / 0.3),
-      0 4px 12px rgb(0 0 0 / 0.2),
-      0 0 0 2px var(--glow-accent-primary, #3b82f6);
-  }
-
-  /* Active page indicator */
-  .page-container.active .page {
-    box-shadow:
-      0 1px 3px rgb(0 0 0 / 0.3),
-      0 4px 12px rgb(0 0 0 / 0.2),
-      0 0 0 2px var(--glow-accent-primary, #3b82f6);
-  }
-
-  /* Page content preview for non-active pages */
-  .page-content-preview {
-    min-height: 100%;
-    font-family: var(--glow-font-sans);
-    font-size: 11pt;
-    line-height: 1.5;
-    color: var(--glow-text-primary);
-  }
-
-  .page-content-preview :global(p) {
-    margin: 0 0 12px 0;
-  }
-
-  .page-content-preview :global(h1) {
-    font-size: 26pt;
-    font-weight: 400;
-    margin: 24px 0 12px 0;
-    line-height: 1.2;
-  }
-
-  .page-content-preview :global(h2) {
-    font-size: 18pt;
-    font-weight: 400;
-    margin: 20px 0 10px 0;
-    line-height: 1.3;
-  }
-
-  .page-content-preview :global(h3) {
-    font-size: 14pt;
-    font-weight: 600;
-    margin: 16px 0 8px 0;
-    line-height: 1.4;
-  }
-
-  .page-content-preview :global(ul),
-  .page-content-preview :global(ol) {
-    margin: 0 0 12px 0;
-    padding-left: 24px;
-  }
-
-  .page-content-preview :global(li) {
-    margin-bottom: 4px;
-  }
-
-  /* Empty page hint */
-  .page-content-preview :global(.empty-page-hint) {
+  /* Page number badge */
+  .page-number-badge {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
     color: var(--glow-text-tertiary, #666);
-    font-style: italic;
+    padding: 2px 12px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Content container - flows across visual pages */
+  .pages-content {
+    position: relative;
+    z-index: 1;
+    width: 816px;
+    padding: 96px 96px 72px;
+    /* Ensure minimum height of one page */
+    min-height: 1056px;
   }
 
   .comments-area {
