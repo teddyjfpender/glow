@@ -64,10 +64,9 @@
     } else if (event.key === 'Escape') {
       event.preventDefault();
       cancelEdit();
-    } else if (event.key === 'Backspace' && editValue === '') {
-      event.preventDefault();
-      ondelete?.();
     }
+    // Let backspace work normally for editing - don't delete the node
+    // User can press Escape to cancel (deletes if empty) or select and delete from editor
   }
 
   function commitEdit(): void {
