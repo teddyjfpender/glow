@@ -20,6 +20,9 @@
   import { commentsState } from '$lib/state/comments.svelte';
   import { DrawingOverlay, drawingEditorState } from '$lib/editor/excalidraw';
   import { createDefaultAuthor, type ReactionEmoji, type Comment } from '$lib/comments/types';
+  import SideToolbar from './SideToolbar.svelte';
+  import RSVPReader from './rsvp/RSVPReader.svelte';
+  import { rsvpState } from '$lib/state/rsvp.svelte';
 
   interface Props {
     onEditorReady?: (editor: Editor) => void;
@@ -34,6 +37,34 @@
 
   // Comment system state
   const currentAuthor = createDefaultAuthor();
+
+  // Track selection state for side toolbar
+  let hasSelection = $state(false);
+
+  // RSVP playback interval
+  let rsvpInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Handle RSVP playback
+  $effect(() => {
+    if (rsvpState.isPlaying) {
+      const intervalMs = (60 / rsvpState.wordsPerMinute) * 1000;
+      rsvpInterval = setInterval(() => {
+        rsvpState.nextWord();
+      }, intervalMs);
+    } else {
+      if (rsvpInterval) {
+        clearInterval(rsvpInterval);
+        rsvpInterval = null;
+      }
+    }
+
+    return () => {
+      if (rsvpInterval) {
+        clearInterval(rsvpInterval);
+        rsvpInterval = null;
+      }
+    };
+  });
 
   // Expose function to activate draw-anywhere mode
   export function activateDrawAnywhere(): void {
@@ -60,6 +91,58 @@
       void commentsState.loadComments(docId);
     }
   });
+
+  // Track selection state for side toolbar
+  $effect(() => {
+    if (!editor) {
+      hasSelection = false;
+      return;
+    }
+
+    const updateSelection = (): void => {
+      const { from, to } = editor.state.selection;
+      hasSelection = from !== to;
+    };
+
+    editor.on('selectionUpdate', updateSelection);
+    editor.on('transaction', updateSelection);
+
+    return () => {
+      editor.off('selectionUpdate', updateSelection);
+      editor.off('transaction', updateSelection);
+    };
+  });
+
+  // Side toolbar handlers
+  function handleSideToolbarDraw(): void {
+    drawingEditorState.activateOverlay();
+  }
+
+  function handleSideToolbarComment(): void {
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+
+    const selectedText = editor.state.doc.textBetween(from, to, ' ');
+    commentsState.openPanel();
+
+    const event = new CustomEvent('glow:create-comment', {
+      bubbles: true,
+      detail: { from, to, quotedText: selectedText },
+    });
+    editor.view.dom.dispatchEvent(event);
+  }
+
+  function handleSideToolbarRSVP(): void {
+    if (!editor) return;
+
+    // Extract plain text from the document
+    const text = editor.state.doc.textContent;
+    if (text.trim()) {
+      rsvpState.start(text);
+    }
+  }
 
   // State for new comment creation (floating card input)
   let newCommentState: { from: number; to: number; quotedText: string; top: number } | null =
@@ -390,7 +473,33 @@
       <DrawingOverlay editor={editor ?? undefined} containerRef={documentAreaRef} theme="dark" />
     </div>
   </div>
+
+  <!-- Side Toolbar -->
+  <SideToolbar
+    {hasSelection}
+    onDraw={handleSideToolbarDraw}
+    onComment={handleSideToolbarComment}
+    onRSVPReader={handleSideToolbarRSVP}
+  />
 </div>
+
+<!-- RSVP Reader (fullscreen overlay) -->
+{#if rsvpState.isActive}
+  <RSVPReader
+    words={rsvpState.words}
+    currentIndex={rsvpState.currentIndex}
+    isPlaying={rsvpState.isPlaying}
+    wordsPerMinute={rsvpState.wordsPerMinute}
+    onClose={() => rsvpState.close()}
+    onPlayPause={() => rsvpState.togglePlayPause()}
+    onNext={() => rsvpState.nextWord()}
+    onPrev={() => rsvpState.prevWord()}
+    onSkipToStart={() => rsvpState.reset()}
+    onSkipToEnd={() => rsvpState.seekTo(rsvpState.totalWords - 1)}
+    onSpeedChange={(wpm: number) => rsvpState.setSpeed(wpm)}
+    onSeek={(index: number) => rsvpState.seekTo(index)}
+  />
+{/if}
 
 <style>
   .document-container {
