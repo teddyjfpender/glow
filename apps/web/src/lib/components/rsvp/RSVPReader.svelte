@@ -105,11 +105,11 @@
     <div class="crosshair-top"></div>
     <div class="crosshair-bottom"></div>
 
-    <!-- Word display -->
+    <!-- Word display - ORP letter centered at 50% -->
     <div class="word-display">
-      <span class="word-before">{wordParts().before}</span>
-      <span class="word-orp">{wordParts().orp}</span>
-      <span class="word-after">{wordParts().after}</span>
+      <div class="word-before">{wordParts().before}</div>
+      <div class="word-orp">{wordParts().orp}</div>
+      <div class="word-after">{wordParts().after}</div>
     </div>
   </div>
 
@@ -286,10 +286,12 @@
     height: calc(50% - 260px);
   }
 
-  /* Word display */
+  /* Word display - ORP letter centered at absolute 50% of viewport */
   .word-display {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: baseline;
+    width: 100%;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 80px;
     line-height: 1;
@@ -297,18 +299,24 @@
   }
 
   .word-before {
-    text-align: right;
     color: white;
+    /* Right-align text so it ends exactly at the center */
+    text-align: right;
+    white-space: pre;
   }
 
   .word-orp {
     color: #ef4444;
     font-weight: 500;
+    /* ORP letter sits at the center column */
+    text-align: center;
   }
 
   .word-after {
-    text-align: left;
     color: white;
+    /* Left-align text so it starts immediately after ORP */
+    text-align: left;
+    white-space: pre;
   }
 
   /* Bottom section */

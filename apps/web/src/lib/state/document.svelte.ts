@@ -1,20 +1,31 @@
 /**
  * Single document state management using Svelte 5 runes.
  * Works with IndexedDB for persistence.
+ * Supports multiple pages per document.
  */
 
 import { getDocument, saveDocument, type StoredDocument } from '$lib/storage/db';
 
+export interface PageContent {
+  id: string;
+  content: string;
+}
+
 interface DocumentState {
   id: string | null;
   title: string;
-  content: string;
+  pages: PageContent[];
+  currentPageIndex: number;
   isDirty: boolean;
   isSaving: boolean;
   isLoading: boolean;
   lastSaved: Date | null;
   wordCount: number;
   error: string | null;
+}
+
+function generatePageId(): string {
+  return crypto.randomUUID();
 }
 
 function stripHtml(html: string): string {
@@ -36,6 +47,9 @@ function createDocumentState(): {
   readonly id: string | null;
   readonly title: string;
   readonly content: string;
+  readonly pages: PageContent[];
+  readonly currentPageIndex: number;
+  readonly totalPages: number;
   readonly isDirty: boolean;
   readonly isSaving: boolean;
   readonly isLoading: boolean;
@@ -47,11 +61,17 @@ function createDocumentState(): {
   save: () => Promise<void>;
   load: (id: string) => Promise<void>;
   reset: () => void;
+  addPage: () => void;
+  deletePage: (index: number) => void;
+  goToPage: (index: number) => void;
+  nextPage: () => void;
+  prevPage: () => void;
 } {
   let state = $state<DocumentState>({
     id: null,
     title: 'Untitled document',
-    content: '',
+    pages: [{ id: generatePageId(), content: '' }],
+    currentPageIndex: 0,
     isDirty: false,
     isSaving: false,
     isLoading: false,
@@ -69,8 +89,11 @@ function createDocumentState(): {
   }
 
   function setContent(content: string): void {
-    state.content = content;
-    state.wordCount = calculateWordCount(stripHtml(content));
+    // Update the current page's content
+    state.pages[state.currentPageIndex].content = content;
+    // Calculate word count for all pages combined
+    const allContent = state.pages.map(p => p.content).join(' ');
+    state.wordCount = calculateWordCount(stripHtml(allContent));
     state.isDirty = true;
     scheduleSave();
   }
@@ -93,10 +116,17 @@ function createDocumentState(): {
     state.error = null;
 
     try {
+      // Serialize pages to JSON for storage
+      const contentToSave = JSON.stringify({
+        version: 2,
+        pages: state.pages,
+        currentPageIndex: state.currentPageIndex,
+      });
+
       await saveDocument({
         id: state.id,
         title: state.title,
-        content: state.content,
+        content: contentToSave,
       });
 
       state.isDirty = false;
@@ -122,8 +152,30 @@ function createDocumentState(): {
 
       state.id = doc.id;
       state.title = doc.title;
-      state.content = doc.content;
-      state.wordCount = calculateWordCount(stripHtml(doc.content));
+
+      // Try to parse as multi-page format, fall back to legacy single-page
+      let pages: PageContent[];
+      let currentPageIndex = 0;
+
+      try {
+        const parsed = JSON.parse(doc.content);
+        if (parsed.version === 2 && Array.isArray(parsed.pages)) {
+          pages = parsed.pages;
+          currentPageIndex = parsed.currentPageIndex ?? 0;
+        } else {
+          // Legacy format - single page
+          pages = [{ id: generatePageId(), content: doc.content }];
+        }
+      } catch {
+        // Not JSON - legacy single-page content
+        pages = [{ id: generatePageId(), content: doc.content }];
+      }
+
+      state.pages = pages;
+      state.currentPageIndex = Math.min(currentPageIndex, pages.length - 1);
+
+      const allContent = pages.map(p => p.content).join(' ');
+      state.wordCount = calculateWordCount(stripHtml(allContent));
       state.lastSaved = new Date(doc.modifiedAt);
       state.isDirty = false;
     } catch (err) {
@@ -139,13 +191,61 @@ function createDocumentState(): {
     }
     state.id = null;
     state.title = 'Untitled document';
-    state.content = '';
+    state.pages = [{ id: generatePageId(), content: '' }];
+    state.currentPageIndex = 0;
     state.isDirty = false;
     state.isSaving = false;
     state.isLoading = false;
     state.lastSaved = null;
     state.wordCount = 0;
     state.error = null;
+  }
+
+  function addPage(): void {
+    const newPage: PageContent = { id: generatePageId(), content: '' };
+    // Insert after current page
+    state.pages.splice(state.currentPageIndex + 1, 0, newPage);
+    state.currentPageIndex = state.currentPageIndex + 1;
+    state.isDirty = true;
+    scheduleSave();
+  }
+
+  function deletePage(index: number): void {
+    if (state.pages.length <= 1) {
+      // Cannot delete the last page
+      return;
+    }
+    if (index < 0 || index >= state.pages.length) {
+      return;
+    }
+    state.pages.splice(index, 1);
+    // Adjust currentPageIndex if needed
+    if (state.currentPageIndex >= state.pages.length) {
+      state.currentPageIndex = state.pages.length - 1;
+    } else if (state.currentPageIndex > index) {
+      state.currentPageIndex = state.currentPageIndex - 1;
+    }
+    state.isDirty = true;
+    scheduleSave();
+  }
+
+  function goToPage(index: number): void {
+    if (index < 0 || index >= state.pages.length) {
+      return;
+    }
+    state.currentPageIndex = index;
+  }
+
+  function nextPage(): void {
+    if (state.currentPageIndex < state.pages.length - 1) {
+      state.currentPageIndex = state.currentPageIndex + 1;
+    }
+  }
+
+  function prevPage(): void {
+    if (state.currentPageIndex > 0) {
+      state.currentPageIndex = state.currentPageIndex - 1;
+    }
   }
 
   return {
@@ -156,7 +256,17 @@ function createDocumentState(): {
       return state.title;
     },
     get content(): string {
-      return state.content;
+      // Return current page content
+      return state.pages[state.currentPageIndex]?.content ?? '';
+    },
+    get pages(): PageContent[] {
+      return state.pages;
+    },
+    get currentPageIndex(): number {
+      return state.currentPageIndex;
+    },
+    get totalPages(): number {
+      return state.pages.length;
     },
     get isDirty(): boolean {
       return state.isDirty;
@@ -181,6 +291,11 @@ function createDocumentState(): {
     save,
     load,
     reset,
+    addPage,
+    deletePage,
+    goToPage,
+    nextPage,
+    prevPage,
   };
 }
 

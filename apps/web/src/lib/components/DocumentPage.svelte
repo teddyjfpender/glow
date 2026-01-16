@@ -34,6 +34,7 @@
   let documentAreaRef = $state<HTMLDivElement | null>(null);
   let editor: Editor | null = $state(null);
   let lastSyncedContent = '';
+  let lastPageIndex = $state(0); // Track the last page index to detect page changes
 
   // Comment system state
   const currentAuthor = createDefaultAuthor();
@@ -70,6 +71,18 @@
   export function activateDrawAnywhere(): void {
     drawingEditorState.activateOverlay();
   }
+
+  // Watch for page changes - load content when switching pages
+  $effect(() => {
+    const currentPageIndex = documentState.currentPageIndex;
+    if (editor && currentPageIndex !== lastPageIndex) {
+      // Page changed - load the new page's content
+      const newContent = documentState.content;
+      editor.commands.setContent(newContent);
+      lastSyncedContent = newContent;
+      lastPageIndex = currentPageIndex;
+    }
+  });
 
   // Watch for external content changes (from loading documents)
   $effect(() => {
@@ -442,8 +455,72 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
-        <div class="page">
-          <div class="editor" bind:this={editorElement}></div>
+        <div class="page-container">
+          <div class="page">
+            <div class="editor" bind:this={editorElement}></div>
+          </div>
+
+          <!-- Page Navigation UI -->
+          <div class="page-navigation">
+            <button
+              class="page-nav-btn"
+              onclick={() => documentState.prevPage()}
+              disabled={documentState.currentPageIndex === 0}
+              title="Previous page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <span class="page-indicator">
+              Page {documentState.currentPageIndex + 1} of {documentState.totalPages}
+            </span>
+
+            <button
+              class="page-nav-btn"
+              onclick={() => documentState.nextPage()}
+              disabled={documentState.currentPageIndex >= documentState.totalPages - 1}
+              title="Next page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+
+            <button
+              class="page-nav-btn add-page-btn"
+              onclick={() => documentState.addPage()}
+              title="Add new page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Page</span>
+            </button>
+
+            {#if documentState.totalPages > 1}
+              <button
+                class="page-nav-btn delete-page-btn"
+                onclick={() => documentState.deletePage(documentState.currentPageIndex)}
+                title="Delete current page"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            {/if}
+          </div>
+
+          <!-- Side Toolbar attached to the right edge of the page -->
+          <SideToolbar
+            {hasSelection}
+            onDraw={handleSideToolbarDraw}
+            onComment={handleSideToolbarComment}
+            onRSVPReader={handleSideToolbarRSVP}
+          />
         </div>
 
         <!-- Floating comment cards positioned to the right of the page -->
@@ -474,13 +551,6 @@
     </div>
   </div>
 
-  <!-- Side Toolbar -->
-  <SideToolbar
-    {hasSelection}
-    onDraw={handleSideToolbarDraw}
-    onComment={handleSideToolbarComment}
-    onRSVPReader={handleSideToolbarRSVP}
-  />
 </div>
 
 <!-- RSVP Reader (fullscreen overlay) -->
@@ -568,6 +638,78 @@
     display: flex;
     gap: 24px;
     position: relative;
+  }
+
+  .page-container {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .page-navigation {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background-color: var(--glow-bg-elevated, #1e1e1e);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+  }
+
+  .page-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: transparent;
+    border: 1px solid var(--glow-border-subtle, #3a3a3a);
+    border-radius: 4px;
+    color: var(--glow-text-secondary, #a0a0a0);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 13px;
+  }
+
+  .page-nav-btn:hover:not(:disabled) {
+    background-color: var(--glow-bg-surface, #2a2a2a);
+    color: var(--glow-text-primary, #e0e0e0);
+    border-color: var(--glow-border-default, #4a4a4a);
+  }
+
+  .page-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .page-nav-btn.add-page-btn {
+    background-color: var(--glow-accent-primary, #3b82f6);
+    border-color: var(--glow-accent-primary, #3b82f6);
+    color: white;
+  }
+
+  .page-nav-btn.add-page-btn:hover {
+    background-color: var(--glow-accent-hover, #2563eb);
+    border-color: var(--glow-accent-hover, #2563eb);
+  }
+
+  .page-nav-btn.delete-page-btn {
+    color: var(--glow-error, #ef4444);
+    border-color: var(--glow-error, #ef4444);
+  }
+
+  .page-nav-btn.delete-page-btn:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+
+  .page-indicator {
+    font-size: 13px;
+    color: var(--glow-text-secondary, #a0a0a0);
+    min-width: 100px;
+    text-align: center;
   }
 
   .page {

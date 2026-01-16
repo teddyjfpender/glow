@@ -94,8 +94,8 @@
 
 <style>
   .side-toolbar {
-    position: fixed;
-    right: 16px;
+    position: absolute;
+    right: -28px;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -103,12 +103,12 @@
     align-items: center;
     gap: 4px;
     padding: 8px;
-    background-color: var(--glow-bg-surface);
+    background-color: #1a1a1a;
     border: 1px solid var(--glow-border-default);
     border-radius: 24px;
     box-shadow:
-      0 4px 6px -1px rgb(0 0 0 / 0.1),
-      0 2px 4px -2px rgb(0 0 0 / 0.1);
+      0 4px 6px -1px rgb(0 0 0 / 0.2),
+      0 2px 4px -2px rgb(0 0 0 / 0.15);
     z-index: 50;
   }
 
