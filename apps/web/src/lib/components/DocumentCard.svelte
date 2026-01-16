@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable svelte/no-at-html-tags -- Displaying user's own local document content safely */
   import { resolve } from '$app/paths';
   import type { StoredDocument } from '$lib/storage/db';
   import { documentsState } from '$lib/state/documents.svelte';
@@ -14,20 +15,23 @@
   function formatDate(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) {
-      return 'Today';
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays.toString()} days ago`;
+    // Check if same day
+    const isToday = date.toDateString() === now.toDateString();
+
+    if (isToday) {
+      // Show time in 24h format
+      return date.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
     } else {
+      // Show date like "Jan 14, 2026"
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+        year: 'numeric',
       });
     }
   }
@@ -68,8 +72,12 @@
   tabindex="0"
 >
   <div class="card-preview">
-    {#if document.previewText}
-      <p class="preview-text">{document.previewText}</p>
+    {#if document.content}
+      <div class="preview-document">
+        <div class="preview-content">
+          {@html document.content}
+        </div>
+      </div>
     {:else}
       <p class="preview-empty">Empty document</p>
     {/if}
@@ -129,13 +137,13 @@
     background-color: var(--glow-bg-surface);
     border: 1px solid var(--glow-border-subtle);
     border-radius: 8px;
-    overflow: hidden;
     cursor: pointer;
     transition:
       border-color 0.2s,
       box-shadow 0.2s;
     text-align: left;
     width: 100%;
+    position: relative;
   }
 
   .document-card:hover {
@@ -145,29 +153,120 @@
 
   .card-preview {
     height: 160px;
-    padding: 16px;
+    padding: 8px;
     background-color: var(--glow-bg-elevated);
     border-bottom: 1px solid var(--glow-border-subtle);
     overflow: hidden;
+    border-radius: 8px 8px 0 0;
   }
 
-  .preview-text {
-    font-size: 11px;
-    line-height: 1.5;
+  .preview-document {
+    background-color: var(--glow-bg-surface);
+    border: 1px solid var(--glow-border-subtle);
+    border-radius: 4px;
+    height: 100%;
+    padding: 6px 8px;
+    overflow: hidden;
+    font-family: var(--glow-font-sans);
+  }
+
+  .preview-content {
+    /* Scale down content for zoomed-out document preview effect */
+    transform: scale(0.45);
+    transform-origin: top left;
+    width: 222%; /* 100% / 0.45 to compensate for scale */
     color: var(--glow-text-secondary);
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 8;
-    line-clamp: 8;
-    -webkit-box-orient: vertical;
-    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Style the preview content - dark mode document */
+  .preview-content :global(h1) {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--glow-text-primary);
+  }
+
+  .preview-content :global(h2) {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 10px;
+    color: var(--glow-text-primary);
+  }
+
+  .preview-content :global(h3) {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--glow-text-primary);
+  }
+
+  .preview-content :global(p) {
+    margin: 0 0 8px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .preview-content :global(ul),
+  .preview-content :global(ol) {
+    margin: 0 0 8px;
+    padding-left: 24px;
+    font-size: 14px;
+  }
+
+  .preview-content :global(li) {
+    margin: 0 0 4px;
+  }
+
+  .preview-content :global(strong),
+  .preview-content :global(b) {
+    font-weight: 600;
+  }
+
+  .preview-content :global(em),
+  .preview-content :global(i) {
+    font-style: italic;
+  }
+
+  /* Excalidraw preview */
+  .preview-content :global([data-excalidraw]),
+  .preview-content :global(.excalidraw-node) {
+    max-width: 100%;
+    max-height: 200px;
+    overflow: hidden;
+    margin: 8px 0;
+    border-radius: 4px;
+    background-color: var(--glow-bg-elevated);
+  }
+
+  .preview-content :global([data-excalidraw] img),
+  .preview-content :global([data-excalidraw] svg),
+  .preview-content :global(.excalidraw-node img),
+  .preview-content :global(.excalidraw-node svg) {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+  }
+
+  /* Comment highlights in preview - hide them */
+  .preview-content :global(.comment-highlight) {
+    background-color: transparent !important;
   }
 
   .preview-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
     font-size: 13px;
     color: var(--glow-text-tertiary);
     font-style: italic;
     margin: 0;
+    background-color: var(--glow-bg-surface);
+    border: 1px solid var(--glow-border-subtle);
+    border-radius: 4px;
   }
 
   .card-footer {
