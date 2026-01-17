@@ -2,198 +2,397 @@
  * Page Break Spacer Plugin
  *
  * This plugin inserts visual spacers at page break positions to create
- * the appearance of discrete pages in a continuous editor.
+ * proper content flow across pages. Without spacers, content would be
+ * hidden behind footer, gap, and header areas.
  *
- * How it works:
- * 1. Measures the editor content height
- * 2. Calculates where page breaks should occur
- * 3. Inserts widget decorations at those positions
- * 4. The spacers push content down, creating visual page separation
+ * KEY INSIGHT: We compute page breaks in a "content-only" coordinate system
+ * (i.e., the editor layout as if there were no spacers), then render the
+ * spacers as widget decorations. This avoids the feedback loop where
+ * measuring against DOM with spacers causes subsequent breaks to drift.
+ *
+ * Algorithm:
+ * 1. Use coordsAtPos to measure actual Y coordinates
+ * 2. Subtract spacer heights above each position to get "content-only" Y
+ * 3. Binary search to find positions at page boundary thresholds
+ * 4. Create widget decorations at those positions
  */
 
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { EditorView } from '@tiptap/pm/view';
 import {
-  PAGE_CONTENT_HEIGHT,
-  PAGE_GAP,
-  HEADER_HEIGHT,
-  FOOTER_HEIGHT,
+  CONTENT_AREA_HEIGHT,
+  SPACER_HEIGHT,
 } from '../utils/page-metrics';
 
-export const pageBreakSpacerKey = new PluginKey('pageBreakSpacer');
+// Debug mode - set to true to show visual indicators
+const DEBUG = false;
 
-/**
- * Height of the spacer between pages
- * This accounts for: page gap + next page's header + current page's footer
- */
-const SPACER_HEIGHT = PAGE_GAP + HEADER_HEIGHT + FOOTER_HEIGHT;
+// Buffer for line height - we break this much earlier to ensure the last line's
+// bottom doesn't extend into the footer zone.
+const LINE_HEIGHT_BUFFER = 24;
 
-/**
- * Calculate the content positions where page breaks should occur
- */
-function calculatePageBreakPositions(
-  view: EditorView,
-  contentAreaHeight: number
-): number[] {
-  const positions: number[] = [];
-  const doc = view.state.doc;
+// Effective content area per page (reduced by line height buffer)
+const EFFECTIVE_CONTENT_AREA = CONTENT_AREA_HEIGHT - LINE_HEIGHT_BUFFER; // 924 - 24 = 900px
 
-  // Track cumulative height
-  let currentHeight = 0;
-  let currentPageBreakThreshold = contentAreaHeight;
+// The spacer must be larger by the same amount to push content to the correct position
+const VISUAL_SPACER_HEIGHT = SPACER_HEIGHT + LINE_HEIGHT_BUFFER; // 164 + 24 = 188px
 
-  // Walk through the document to find positions where content exceeds page height
-  doc.descendants((node, pos) => {
-    try {
-      // Get the DOM node for this position
-      const domNode = view.nodeDOM(pos);
-      if (!domNode || !(domNode instanceof HTMLElement)) return true;
+export const pageBreakSpacerKey = new PluginKey<PageBreakState>('pageBreakSpacer');
 
-      // Get the bottom of this element relative to the editor
-      const coords = view.coordsAtPos(pos);
-      const nodeRect = domNode.getBoundingClientRect();
-      const editorRect = view.dom.getBoundingClientRect();
-
-      // Calculate the bottom position of this node relative to content start
-      const nodeBottom = nodeRect.bottom - editorRect.top + view.dom.scrollTop;
-
-      // If this node's bottom exceeds the current page threshold, add a break before it
-      if (nodeBottom > currentPageBreakThreshold && currentHeight < currentPageBreakThreshold) {
-        // Find the position just before this node
-        positions.push(pos);
-        // Move threshold to next page
-        currentPageBreakThreshold += contentAreaHeight + SPACER_HEIGHT;
-      }
-
-      currentHeight = nodeBottom;
-    } catch {
-      // Position might be invalid, skip
-    }
-
-    return true; // Continue traversal
-  });
-
-  return positions;
+interface PageBreakState {
+  decorations: DecorationSet;
+  positions: number[]; // sorted, unique document positions of spacers
 }
 
 /**
- * Create a spacer widget decoration
+ * Remove duplicates and sort an array of numbers
  */
-function createSpacerWidget(): HTMLElement {
-  const spacer = document.createElement('div');
-  spacer.className = 'page-break-spacer';
-  spacer.style.cssText = `
-    height: ${SPACER_HEIGHT}px;
-    width: 100%;
-    position: relative;
-    pointer-events: none;
-    user-select: none;
-  `;
+function uniqSorted(nums: number[]): number[] {
+  const out: number[] = [];
+  let prev: number | null = null;
+  for (const n of nums.slice().sort((a, b) => a - b)) {
+    if (prev === null || n !== prev) out.push(n);
+    prev = n;
+  }
+  return out;
+}
 
-  // Add visual indicator
-  const indicator = document.createElement('div');
-  indicator.className = 'page-break-indicator';
-  indicator.style.cssText = `
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 4px 16px;
-    font-size: 10px;
-    color: var(--glow-text-tertiary, #666);
-    background-color: var(--glow-bg-surface, #1a1a1a);
-    border: 1px dashed var(--glow-border-default, #333);
-    border-radius: 4px;
-  `;
-  indicator.textContent = 'Page Break';
-  spacer.appendChild(indicator);
+/**
+ * Check if two number arrays are equal
+ */
+function arraysEqual(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Count spacers whose position is <= pos.
+ * Uses binary search since spacerPositions is sorted ascending.
+ */
+function countSpacersBeforeOrAt(pos: number, spacerPositions: number[]): number {
+  let lo = 0;
+  let hi = spacerPositions.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (spacerPositions[mid] <= pos) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
+/**
+ * Create a spacer widget DOM element
+ */
+function createSpacerWidget(index: number): HTMLElement {
+  const spacer = document.createElement('div');
+  spacer.className = 'pm-page-break-spacer';
+  spacer.setAttribute('contenteditable', 'false');
+  spacer.setAttribute('aria-hidden', 'true');
+  spacer.dataset.pageBreakIndex = String(index);
+
+  if (DEBUG) {
+    spacer.dataset.debug = 'true';
+  }
 
   return spacer;
 }
 
 /**
+ * Get the actual Y coordinate (top) at a document position, relative to editor top
+ */
+function yActualTopAtPos(view: EditorView, editorTop: number, pos: number): number {
+  try {
+    const coords = view.coordsAtPos(pos);
+    return coords.top - editorTop;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Get the actual Y coordinate (bottom) at a document position, relative to editor top
+ */
+function yActualBottomAtPos(view: EditorView, editorTop: number, pos: number): number {
+  try {
+    const coords = view.coordsAtPos(pos);
+    return coords.bottom - editorTop;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Get the "content-only" Y coordinate at a position.
+ * This subtracts the height of all spacers above this position,
+ * giving us the Y as if no spacers existed.
+ */
+function yContentOnlyTopAtPos(
+  view: EditorView,
+  editorTop: number,
+  pos: number,
+  currentSpacerPositions: number[]
+): number {
+  const y = yActualTopAtPos(view, editorTop, pos);
+  const k = countSpacersBeforeOrAt(pos, currentSpacerPositions);
+  return y - k * VISUAL_SPACER_HEIGHT;
+}
+
+/**
+ * Get the "content-only" Y coordinate (bottom) at a position.
+ */
+function yContentOnlyBottomAtPos(
+  view: EditorView,
+  editorTop: number,
+  pos: number,
+  currentSpacerPositions: number[]
+): number {
+  const y = yActualBottomAtPos(view, editorTop, pos);
+  const k = countSpacersBeforeOrAt(pos, currentSpacerPositions);
+  return y - k * VISUAL_SPACER_HEIGHT;
+}
+
+/**
+ * Find the smallest document position >= startPos whose content-only Y (top) is >= targetY.
+ * Uses binary search, relying on the monotonicity of yContentOnly(pos) w.r.t pos.
+ *
+ * We use coords.top so that the line at this position, when pushed down by the spacer,
+ * lands exactly at the start of the next page's content area.
+ */
+function findPosAtContentY(
+  view: EditorView,
+  editorTop: number,
+  targetY: number,
+  currentSpacerPositions: number[],
+  startPos: number,
+  endPos: number
+): number {
+  let lo = Math.max(0, startPos);
+  let hi = Math.max(lo, endPos);
+
+  const safeY = (p: number) => {
+    try {
+      return yContentOnlyTopAtPos(view, editorTop, p, currentSpacerPositions);
+    } catch {
+      // If coordsAtPos fails, try adjacent position
+      const p2 = Math.min(endPos, Math.max(0, p + 1));
+      return yContentOnlyTopAtPos(view, editorTop, p2, currentSpacerPositions);
+    }
+  };
+
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    const y = safeY(mid);
+    if (y < targetY) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+
+  return lo;
+}
+
+/**
+ * Build decoration set from spacer positions
+ */
+function buildDecorations(doc: any, positions: number[]): DecorationSet {
+  const decorations = positions.map((pos, i) =>
+    Decoration.widget(
+      pos,
+      () => createSpacerWidget(i + 1),
+      {
+        // side < 0 draws widget before the cursor at its position
+        side: -1,
+        // stable identity for diffing
+        key: `pm-page-break-spacer-${i}`,
+        // helps avoid selection weirdness
+        ignoreSelection: true,
+      }
+    )
+  );
+  return DecorationSet.create(doc, decorations);
+}
+
+/**
+ * Compute page break positions using content-only coordinate system.
+ *
+ * We break LINE_HEIGHT_BUFFER (24px) earlier than the actual content area boundary
+ * to ensure the last line's bottom doesn't extend into the footer zone.
+ * The spacer is correspondingly larger (188px instead of 164px) to push content
+ * to the correct position on the next page.
+ *
+ *   EFFECTIVE_CONTENT_AREA = CONTENT_AREA_HEIGHT - LINE_HEIGHT_BUFFER = 924 - 24 = 900px
+ *   VISUAL_SPACER_HEIGHT = SPACER_HEIGHT + LINE_HEIGHT_BUFFER = 164 + 24 = 188px
+ *   targetY(n) = n * EFFECTIVE_CONTENT_AREA = n * 900
+ *
+ * This ensures:
+ * - Last line of each page: bottom < 920 (editor) = 992 (page), before footer at 996
+ * - First line of next page: after spacer, top lands at exactly 1088/2176/etc (editor)
+ */
+function computeBreakPositions(view: EditorView, currentSpacerPositions: number[]): number[] {
+  const { doc } = view.state;
+  const rect = view.dom.getBoundingClientRect();
+  const editorTop = rect.top;
+
+  // Document end position
+  const endPos: number = doc.content.size;
+  if (endPos <= 0) return [];
+
+  // Get content-only height of the entire document
+  const yEndContentOnly = yContentOnlyBottomAtPos(view, editorTop, endPos, currentSpacerPositions);
+
+  // Calculate number of breaks needed based on effective content height per page
+  // Use small epsilon to avoid creating an extra blank page spacer at exact boundaries
+  const epsilon = 1;
+  const numBreaks = Math.floor((yEndContentOnly - epsilon) / EFFECTIVE_CONTENT_AREA);
+  if (numBreaks <= 0) return [];
+
+  const positions: number[] = [];
+  let searchFrom = 0;
+
+  for (let n = 1; n <= numBreaks; n++) {
+    // Target Y in content-only coordinates (editor-relative)
+    // Break when a line's TOP reaches the effective content area boundary
+    const targetY = n * EFFECTIVE_CONTENT_AREA;
+
+    const pos = findPosAtContentY(
+      view,
+      editorTop,
+      targetY,
+      currentSpacerPositions,
+      searchFrom,
+      endPos
+    );
+
+    // Validate position
+    if (pos <= 0 || pos >= endPos) break;
+    if (positions.length && pos <= positions[positions.length - 1]) break;
+
+    positions.push(pos);
+    searchFrom = pos + 1;
+
+    if (DEBUG) {
+      const actualY = yContentOnlyTopAtPos(view, editorTop, pos, currentSpacerPositions);
+      console.log(
+        `[PageBreakSpacer] Break ${n}: targetY=${targetY}, pos=${pos}, actualY=${actualY}`
+      );
+    }
+  }
+
+  return uniqSorted(positions);
+}
+
+/**
  * Create the page break spacer plugin
  */
-export function createPageBreakSpacerPlugin(
-  contentAreaHeight: number = PAGE_CONTENT_HEIGHT
-): Plugin {
-  let decorations = DecorationSet.empty;
-  let lastDocSize = 0;
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-  return new Plugin({
+export function createPageBreakSpacerPlugin(): Plugin<PageBreakState> {
+  return new Plugin<PageBreakState>({
     key: pageBreakSpacerKey,
 
     state: {
-      init() {
-        return { positions: [] as number[] };
+      init(_, _state): PageBreakState {
+        return {
+          positions: [],
+          decorations: DecorationSet.empty,
+        };
       },
 
-      apply(tr, value) {
-        // Only recalculate if document changed
-        if (tr.docChanged) {
-          return { positions: [], needsUpdate: true };
+      apply(tr, prev, _oldState, newState): PageBreakState {
+        // Check for explicit state update via meta
+        const meta = tr.getMeta(pageBreakSpacerKey) as PageBreakState | undefined;
+        if (meta) {
+          return meta;
         }
-        return value;
+
+        // Map existing decorations through the transaction
+        // This keeps decorations "close" until next recompute
+        const mapped = prev.decorations.map(tr.mapping, tr.doc);
+        const mappedPositions = prev.positions
+          .map((p) => tr.mapping.map(p, -1))
+          .filter((p) => p >= 0 && p <= newState.doc.content.size);
+
+        return {
+          positions: uniqSorted(mappedPositions),
+          decorations: mapped,
+        };
+      },
+    },
+
+    props: {
+      decorations(state) {
+        return pageBreakSpacerKey.getState(state)?.decorations ?? null;
       },
     },
 
     view(view) {
-      const updateDecorations = () => {
-        // Debounce updates to avoid performance issues
-        if (debounceTimer) {
-          clearTimeout(debounceTimer);
+      let rafId: number | null = null;
+      let resizeObserver: ResizeObserver | null = null;
+
+      const scheduleUpdate = () => {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
         }
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
 
-        debounceTimer = setTimeout(() => {
-          const docSize = view.state.doc.content.size;
+          // Skip if view isn't in layout yet
+          const rect = view.dom.getBoundingClientRect();
+          if (rect.height === 0 && rect.width === 0) return;
 
-          // Only update if document size changed significantly
-          if (Math.abs(docSize - lastDocSize) < 10) {
-            return;
+          const pluginState = pageBreakSpacerKey.getState(view.state);
+          const currentPositions = pluginState?.positions ?? [];
+
+          const nextPositions = computeBreakPositions(view, currentPositions);
+
+          // Only dispatch if positions changed
+          if (!arraysEqual(nextPositions, currentPositions)) {
+            if (DEBUG) {
+              console.log(
+                `[PageBreakSpacer] Updating: ${currentPositions.length} -> ${nextPositions.length} breaks`,
+                nextPositions
+              );
+            }
+
+            const nextState: PageBreakState = {
+              positions: nextPositions,
+              decorations: buildDecorations(view.state.doc, nextPositions),
+            };
+            const tr = view.state.tr.setMeta(pageBreakSpacerKey, nextState);
+            view.dispatch(tr);
           }
-          lastDocSize = docSize;
-
-          // Calculate page break positions
-          const positions = calculatePageBreakPositions(view, contentAreaHeight);
-
-          // Create decorations
-          const newDecorations = positions.map((pos) =>
-            Decoration.widget(pos, createSpacerWidget, {
-              side: -1, // Place before the position
-              key: `page-break-${pos}`,
-            })
-          );
-
-          decorations = DecorationSet.create(view.state.doc, newDecorations);
-
-          // Force a view update
-          view.dispatch(view.state.tr.setMeta('pageBreakSpacerUpdate', true));
-        }, 100);
+        });
       };
 
-      // Initial update after a short delay to allow DOM to settle
-      setTimeout(updateDecorations, 200);
+      // Initial compute
+      scheduleUpdate();
+
+      // Recompute on resize (line wrapping changes coordsAtPos results)
+      resizeObserver = new ResizeObserver(scheduleUpdate);
+      resizeObserver.observe(view.dom);
 
       return {
         update(view, prevState) {
-          if (view.state.doc !== prevState.doc) {
-            updateDecorations();
+          // Recompute when document changes
+          if (prevState.doc !== view.state.doc) {
+            scheduleUpdate();
           }
         },
         destroy() {
-          if (debounceTimer) {
-            clearTimeout(debounceTimer);
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          if (resizeObserver) {
+            resizeObserver.disconnect();
           }
         },
       };
-    },
-
-    props: {
-      decorations() {
-        return decorations;
-      },
     },
   });
 }

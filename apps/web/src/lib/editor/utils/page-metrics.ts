@@ -60,11 +60,26 @@ export const HEADER_HEIGHT = 72;
 export const FOOTER_HEIGHT = 60;
 
 /**
- * Usable content height per page in pixels
+ * Usable content height per page in pixels (printable area)
  * Calculated as: PAGE_HEIGHT - PAGE_MARGIN_TOP - PAGE_MARGIN_BOTTOM - FOOTER_HEIGHT
  * = 1056 - 96 - 72 - 60 = 828
  */
 export const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN_TOP - PAGE_MARGIN_BOTTOM - FOOTER_HEIGHT;
+
+/**
+ * Content area height per page (between header and footer overlays)
+ * This is the visible content area on screen, not the printable area.
+ * Calculated as: PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT = 1056 - 72 - 60 = 924px
+ */
+export const CONTENT_AREA_HEIGHT = PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT;
+
+/**
+ * Spacer height between pages (for page break spacer plugin)
+ * This accounts for: current page's footer + gap + next page's header
+ * Content needs to skip over this zone when crossing page boundaries.
+ * Calculated as: FOOTER_HEIGHT + PAGE_GAP + HEADER_HEIGHT = 60 + 32 + 72 = 164px
+ */
+export const SPACER_HEIGHT = FOOTER_HEIGHT + PAGE_GAP + HEADER_HEIGHT;
 
 // ============================================================================
 // Utility Functions

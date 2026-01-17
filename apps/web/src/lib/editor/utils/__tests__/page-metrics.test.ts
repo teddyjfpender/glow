@@ -13,6 +13,8 @@ import {
   HEADER_HEIGHT,
   FOOTER_HEIGHT,
   PAGE_CONTENT_HEIGHT,
+  CONTENT_AREA_HEIGHT,
+  SPACER_HEIGHT,
   calculatePageCount,
   getPageAtPosition,
   getPageStartY,
@@ -63,6 +65,18 @@ describe('Page Metrics Constants', () => {
       expect(PAGE_CONTENT_HEIGHT).toBe(828);
       // Verify the calculation: 1056 - 96 - 72 - 60 = 828
       expect(PAGE_CONTENT_HEIGHT).toBe(PAGE_HEIGHT - PAGE_MARGIN_TOP - PAGE_MARGIN_BOTTOM - FOOTER_HEIGHT);
+    });
+
+    it('should have CONTENT_AREA_HEIGHT of 924 pixels (PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT)', () => {
+      expect(CONTENT_AREA_HEIGHT).toBe(924);
+      // Verify the calculation: 1056 - 72 - 60 = 924
+      expect(CONTENT_AREA_HEIGHT).toBe(PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT);
+    });
+
+    it('should have SPACER_HEIGHT of 164 pixels (FOOTER_HEIGHT + PAGE_GAP + HEADER_HEIGHT)', () => {
+      expect(SPACER_HEIGHT).toBe(164);
+      // Verify the calculation: 60 + 32 + 72 = 164
+      expect(SPACER_HEIGHT).toBe(FOOTER_HEIGHT + PAGE_GAP + HEADER_HEIGHT);
     });
   });
 });
