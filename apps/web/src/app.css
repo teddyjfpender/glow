@@ -48,6 +48,7 @@
   /* Spacing */
   --glow-header-height: 48px;
   --glow-sidebar-width: 240px;
+  --glow-tabs-panel-width: 260px;
   --glow-content-max-width: 720px;
 
   /* Transitions */

@@ -1,12 +1,15 @@
 /**
  * Single document state management using Svelte 5 runes.
  * Works with IndexedDB for persistence.
- * Supports multiple pages per document.
+ * Supports document tabs for organizing content.
  */
 
 import { getDocument, saveDocument, type StoredDocument } from '$lib/storage/db';
+import { tabsState } from '$lib/state/tabs.svelte';
+import type { Tab, TabsData } from '$lib/types/tabs';
 
-export interface PageContent {
+// Legacy interface for migration
+interface PageContent {
   id: string;
   content: string;
 }
@@ -14,8 +17,6 @@ export interface PageContent {
 interface DocumentState {
   id: string | null;
   title: string;
-  pages: PageContent[];
-  currentPageIndex: number;
   isDirty: boolean;
   isSaving: boolean;
   isLoading: boolean;
@@ -24,7 +25,7 @@ interface DocumentState {
   error: string | null;
 }
 
-function generatePageId(): string {
+function generateId(): string {
   return crypto.randomUUID();
 }
 
@@ -43,13 +44,74 @@ function calculateWordCount(text: string): number {
   return trimmed.split(/\s+/).length;
 }
 
+/**
+ * Migrate content from various formats to TabsData (version 3).
+ */
+function migrateContent(rawContent: string): TabsData {
+  try {
+    const parsed = JSON.parse(rawContent);
+
+    // Version 3: Native tabs format
+    if (parsed.version === 3 && Array.isArray(parsed.tabs)) {
+      return parsed as TabsData;
+    }
+
+    // Version 2: Pages format -> migrate each page to a tab
+    if (parsed.version === 2 && Array.isArray(parsed.pages)) {
+      const pages = parsed.pages as PageContent[];
+      const tabs: Tab[] = pages.map((page, index) => ({
+        id: page.id || generateId(),
+        name: pages.length === 1 ? 'Tab 1' : `Page ${index + 1}`,
+        content: page.content,
+        parentId: null,
+        order: index,
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+      }));
+
+      return {
+        version: 3,
+        tabs,
+        activeTabId: tabs[0]?.id ?? '',
+        expandedTabIds: [],
+      };
+    }
+
+    // Unknown JSON format - treat as single tab content
+    return createSingleTabData(rawContent);
+  } catch {
+    // Plain HTML content - wrap in single tab
+    return createSingleTabData(rawContent);
+  }
+}
+
+/**
+ * Create TabsData with a single tab containing the given content.
+ */
+function createSingleTabData(content: string): TabsData {
+  const tabId = generateId();
+  return {
+    version: 3,
+    tabs: [
+      {
+        id: tabId,
+        name: 'Tab 1',
+        content,
+        parentId: null,
+        order: 0,
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+      },
+    ],
+    activeTabId: tabId,
+    expandedTabIds: [],
+  };
+}
+
 function createDocumentState(): {
   readonly id: string | null;
   readonly title: string;
   readonly content: string;
-  readonly pages: PageContent[];
-  readonly currentPageIndex: number;
-  readonly totalPages: number;
   readonly isDirty: boolean;
   readonly isSaving: boolean;
   readonly isLoading: boolean;
@@ -61,17 +123,11 @@ function createDocumentState(): {
   save: () => Promise<void>;
   load: (id: string) => Promise<void>;
   reset: () => void;
-  addPage: () => void;
-  deletePage: (index: number) => void;
-  goToPage: (index: number) => void;
-  nextPage: () => void;
-  prevPage: () => void;
+  scheduleSave: () => void;
 } {
   let state = $state<DocumentState>({
     id: null,
     title: 'Untitled document',
-    pages: [{ id: generatePageId(), content: '' }],
-    currentPageIndex: 0,
     isDirty: false,
     isSaving: false,
     isLoading: false,
@@ -89,10 +145,14 @@ function createDocumentState(): {
   }
 
   function setContent(content: string): void {
-    // Update the current page's content
-    state.pages[state.currentPageIndex].content = content;
-    // Calculate word count for all pages combined
-    const allContent = state.pages.map(p => p.content).join(' ');
+    // Update the active tab's content
+    const activeTabId = tabsState.activeTabId;
+    if (activeTabId !== null) {
+      tabsState.updateTabContent(activeTabId, content);
+    }
+
+    // Calculate word count for all tabs combined
+    const allContent = tabsState.tabsArray.map((t) => t.content).join(' ');
     state.wordCount = calculateWordCount(stripHtml(allContent));
     state.isDirty = true;
     scheduleSave();
@@ -116,12 +176,9 @@ function createDocumentState(): {
     state.error = null;
 
     try {
-      // Serialize pages to JSON for storage
-      const contentToSave = JSON.stringify({
-        version: 2,
-        pages: state.pages,
-        currentPageIndex: state.currentPageIndex,
-      });
+      // Serialize tabs to JSON for storage
+      const tabsData = tabsState.serialize();
+      const contentToSave = JSON.stringify(tabsData);
 
       await saveDocument({
         id: state.id,
@@ -130,6 +187,7 @@ function createDocumentState(): {
       });
 
       state.isDirty = false;
+      tabsState.markClean();
       state.lastSaved = new Date();
     } catch (err) {
       state.error = err instanceof Error ? err.message : 'Failed to save';
@@ -153,28 +211,14 @@ function createDocumentState(): {
       state.id = doc.id;
       state.title = doc.title;
 
-      // Try to parse as multi-page format, fall back to legacy single-page
-      let pages: PageContent[];
-      let currentPageIndex = 0;
+      // Migrate content to tabs format if needed
+      const tabsData = migrateContent(doc.content);
 
-      try {
-        const parsed = JSON.parse(doc.content);
-        if (parsed.version === 2 && Array.isArray(parsed.pages)) {
-          pages = parsed.pages;
-          currentPageIndex = parsed.currentPageIndex ?? 0;
-        } else {
-          // Legacy format - single page
-          pages = [{ id: generatePageId(), content: doc.content }];
-        }
-      } catch {
-        // Not JSON - legacy single-page content
-        pages = [{ id: generatePageId(), content: doc.content }];
-      }
+      // Initialize tabs state
+      tabsState.initialize(tabsData);
 
-      state.pages = pages;
-      state.currentPageIndex = Math.min(currentPageIndex, pages.length - 1);
-
-      const allContent = pages.map(p => p.content).join(' ');
+      // Calculate word count for all tabs combined
+      const allContent = tabsData.tabs.map((t) => t.content).join(' ');
       state.wordCount = calculateWordCount(stripHtml(allContent));
       state.lastSaved = new Date(doc.modifiedAt);
       state.isDirty = false;
@@ -191,61 +235,14 @@ function createDocumentState(): {
     }
     state.id = null;
     state.title = 'Untitled document';
-    state.pages = [{ id: generatePageId(), content: '' }];
-    state.currentPageIndex = 0;
     state.isDirty = false;
     state.isSaving = false;
     state.isLoading = false;
     state.lastSaved = null;
     state.wordCount = 0;
     state.error = null;
-  }
-
-  function addPage(): void {
-    const newPage: PageContent = { id: generatePageId(), content: '' };
-    // Insert after current page
-    state.pages.splice(state.currentPageIndex + 1, 0, newPage);
-    state.currentPageIndex = state.currentPageIndex + 1;
-    state.isDirty = true;
-    scheduleSave();
-  }
-
-  function deletePage(index: number): void {
-    if (state.pages.length <= 1) {
-      // Cannot delete the last page
-      return;
-    }
-    if (index < 0 || index >= state.pages.length) {
-      return;
-    }
-    state.pages.splice(index, 1);
-    // Adjust currentPageIndex if needed
-    if (state.currentPageIndex >= state.pages.length) {
-      state.currentPageIndex = state.pages.length - 1;
-    } else if (state.currentPageIndex > index) {
-      state.currentPageIndex = state.currentPageIndex - 1;
-    }
-    state.isDirty = true;
-    scheduleSave();
-  }
-
-  function goToPage(index: number): void {
-    if (index < 0 || index >= state.pages.length) {
-      return;
-    }
-    state.currentPageIndex = index;
-  }
-
-  function nextPage(): void {
-    if (state.currentPageIndex < state.pages.length - 1) {
-      state.currentPageIndex = state.currentPageIndex + 1;
-    }
-  }
-
-  function prevPage(): void {
-    if (state.currentPageIndex > 0) {
-      state.currentPageIndex = state.currentPageIndex - 1;
-    }
+    // Also reset tabs state
+    tabsState.reset();
   }
 
   return {
@@ -256,20 +253,11 @@ function createDocumentState(): {
       return state.title;
     },
     get content(): string {
-      // Return current page content
-      return state.pages[state.currentPageIndex]?.content ?? '';
-    },
-    get pages(): PageContent[] {
-      return state.pages;
-    },
-    get currentPageIndex(): number {
-      return state.currentPageIndex;
-    },
-    get totalPages(): number {
-      return state.pages.length;
+      // Return active tab's content
+      return tabsState.activeTab?.content ?? '';
     },
     get isDirty(): boolean {
-      return state.isDirty;
+      return state.isDirty || tabsState.isDirty;
     },
     get isSaving(): boolean {
       return state.isSaving;
@@ -291,11 +279,7 @@ function createDocumentState(): {
     save,
     load,
     reset,
-    addPage,
-    deletePage,
-    goToPage,
-    nextPage,
-    prevPage,
+    scheduleSave,
   };
 }
 

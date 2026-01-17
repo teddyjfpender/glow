@@ -28,6 +28,7 @@
   import { bionicState } from '$lib/state/bionic.svelte';
   import { headerFooterState } from '$lib/state/header-footer.svelte';
   import { paginationState } from '$lib/state/pagination.svelte';
+  import { tabsState } from '$lib/state/tabs.svelte';
   import {
     PAGE_HEIGHT,
     PAGE_GAP,
@@ -35,6 +36,8 @@
     FOOTER_HEIGHT,
     calculatePageCount,
   } from '$lib/editor/utils/page-metrics';
+  import TabsPanel from './TabsPanel.svelte';
+  import { browser } from '$app/environment';
 
   interface Props {
     onEditorReady?: (editor: Editor) => void;
@@ -66,6 +69,21 @@
 
   // Track selection state for side toolbar
   let hasSelection = $state(false);
+
+  // Tabs panel collapsed state (persisted to localStorage)
+  let tabsPanelCollapsed = $state(
+    browser ? localStorage.getItem('glow-tabs-panel-collapsed') === 'true' : false,
+  );
+
+  function toggleTabsPanel(): void {
+    tabsPanelCollapsed = !tabsPanelCollapsed;
+    if (browser) {
+      localStorage.setItem('glow-tabs-panel-collapsed', String(tabsPanelCollapsed));
+    }
+  }
+
+  // Track the previous active tab ID to detect tab switches
+  let previousActiveTabId = $state<string | null>(null);
 
   // Actual content area height per page (page height minus header and footer)
   const CONTENT_AREA_HEIGHT = PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT; // 924px
@@ -168,24 +186,58 @@
     };
   });
 
-  // Watch for external content changes (from loading documents)
-  $effect(() => {
-    const content = documentState.content;
-    if (editor && content !== lastSyncedContent) {
-      // Only update if the change came from loading, not from typing
-      const currentContent = editor.getHTML();
-      if (currentContent !== content) {
-        editor.commands.setContent(content);
-      }
-      lastSyncedContent = content;
-    }
-  });
-
   // Load comments when documentId changes
   $effect(() => {
     const docId = documentState.id;
     if (docId) {
       void commentsState.loadComments(docId);
+    }
+  });
+
+  // Unified content synchronization effect
+  // Handles both tab switching and initial document load
+  $effect(() => {
+    const currentActiveTabId = tabsState.activeTabId;
+    const activeTab = tabsState.activeTab;
+
+    // Skip if no active tab or editor not ready
+    if (!currentActiveTabId || !activeTab || !editor) {
+      return;
+    }
+
+    // Case 1: Tab switch - save old content, load new content
+    if (previousActiveTabId !== null && previousActiveTabId !== currentActiveTabId) {
+      // Save current editor content to the PREVIOUS tab before switching
+      const currentEditorContent = editor.getHTML();
+      tabsState.updateTabContent(previousActiveTabId, currentEditorContent);
+
+      // Load new tab content into editor
+      editor.commands.setContent(activeTab.content);
+      lastSyncedContent = activeTab.content;
+      previousActiveTabId = currentActiveTabId;
+      return;
+    }
+
+    // Case 2: Initial load or editor just became ready
+    if (previousActiveTabId === null) {
+      const editorContent = editor.getHTML();
+      if (editorContent !== activeTab.content) {
+        editor.commands.setContent(activeTab.content);
+        lastSyncedContent = activeTab.content;
+      }
+      previousActiveTabId = currentActiveTabId;
+      return;
+    }
+
+    // Case 3: Content changed from external source (document reload)
+    // Only sync if tab didn't change and content is different from what editor has
+    const expectedContent = activeTab.content;
+    if (expectedContent !== lastSyncedContent) {
+      const currentEditorContent = editor.getHTML();
+      if (currentEditorContent !== expectedContent) {
+        editor.commands.setContent(expectedContent);
+      }
+      lastSyncedContent = expectedContent;
     }
   });
 
@@ -515,12 +567,64 @@
 
     // Listen for comment creation events from toolbar
     editorElement.addEventListener('glow:create-comment', handleCreateCommentEvent);
+
+    // Listen for scroll-to-heading events from outline
+    document.addEventListener('glow:scroll-to-heading', handleScrollToHeading);
   });
 
   onDestroy(() => {
     editorElement?.removeEventListener('glow:create-comment', handleCreateCommentEvent);
+    document.removeEventListener('glow:scroll-to-heading', handleScrollToHeading);
     editor?.destroy();
   });
+
+  // Handle scroll to heading from outline click
+  function handleScrollToHeading(event: Event): void {
+    const customEvent = event as CustomEvent<{ text: string; level: number }>;
+    const { text, level } = customEvent.detail;
+
+    if (!editor || !documentAreaRef) return;
+
+    // Find the heading node in the document
+    const { doc } = editor.state;
+    let targetPos: number | null = null;
+
+    doc.descendants((node, pos) => {
+      if (targetPos !== null) return false; // Already found
+
+      // Check if this is a heading with matching level and text
+      if (node.type.name === 'heading' && node.attrs.level === level) {
+        const nodeText = node.textContent.trim();
+        if (nodeText === text.trim()) {
+          targetPos = pos;
+          return false; // Stop searching
+        }
+      }
+      return true; // Continue searching
+    });
+
+    if (targetPos !== null) {
+      // Get coordinates of the heading position
+      try {
+        const coords = editor.view.coordsAtPos(targetPos);
+        const containerRect = documentAreaRef.getBoundingClientRect();
+
+        // Calculate scroll position to show heading near the top with some padding
+        const scrollTop = coords.top - containerRect.top + documentAreaRef.scrollTop - 100;
+
+        documentAreaRef.scrollTo({
+          top: Math.max(0, scrollTop),
+          behavior: 'smooth',
+        });
+
+        // Optionally, move cursor to the heading
+        editor.commands.setTextSelection(targetPos);
+        editor.commands.focus();
+      } catch {
+        // Position might be invalid
+      }
+    }
+  }
 </script>
 
 <div class="document-container">
@@ -548,6 +652,10 @@
       onclick={handleDocumentAreaClick}
     >
       <div class="page-wrapper">
+        <!-- Tabs Panel (floating, left of document) -->
+        <div class="tabs-area">
+          <TabsPanel isCollapsed={tabsPanelCollapsed} onToggleCollapse={toggleTabsPanel} />
+        </div>
         <div
           class="pages-container"
           bind:this={pagesContentRef}
@@ -875,6 +983,15 @@
     right: -28px;
     z-index: 50;
     transition: top 0.15s ease-out;
+  }
+
+  .tabs-area {
+    position: absolute;
+    right: calc(50% + 408px + 24px); /* 816/2 = 408px (half page width) + 24px gap */
+    top: 20px;
+    /* Allow dropdowns to overflow */
+    overflow: visible;
+    z-index: 10;
   }
 
   .comments-area {
