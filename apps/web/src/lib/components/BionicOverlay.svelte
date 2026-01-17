@@ -30,28 +30,27 @@
   let contentRef = $state<HTMLDivElement | null>(null);
 
   /**
-   * Get content-only Y positions for an element (subtracting spacer heights)
+   * Get content-only Y position for an element's top (subtracting spacer heights)
    */
-  function getContentOnlyBounds(
+  function getContentOnlyTop(
     element: HTMLElement,
     containerTop: number,
     spacerCount: number
-  ): { top: number; bottom: number } {
+  ): number {
     const rect = element.getBoundingClientRect();
     const actualTop = rect.top - containerTop;
-    const actualBottom = rect.bottom - containerTop;
-    return {
-      top: actualTop - spacerCount * VISUAL_SPACER_HEIGHT,
-      bottom: actualBottom - spacerCount * VISUAL_SPACER_HEIGHT,
-    };
+    return actualTop - spacerCount * VISUAL_SPACER_HEIGHT;
   }
 
   /**
    * Insert spacer divs at page break positions
-   * Uses the same algorithm as page-break-spacer plugin:
+   * Matches the editor's page-break-spacer plugin algorithm:
    * 1. Measure content in "content-only" coordinates (subtracting spacer heights)
-   * 2. Find elements whose BOTTOM would overflow into the footer zone
-   * 3. Insert spacers before those elements to push them to the next page
+   * 2. Find elements whose TOP crosses page boundaries
+   * 3. Insert spacers before those elements
+   *
+   * Note: Unlike the editor which can split paragraphs between lines,
+   * the bionic overlay works at block level only.
    */
   function insertPageBreakSpacers(): void {
     if (!contentRef) return;
@@ -70,20 +69,16 @@
     const containerRect = contentRef.getBoundingClientRect();
     const containerTop = containerRect.top;
 
-    // Insert spacers iteratively - each time we insert one, re-evaluate
+    // Track spacers inserted and current page boundary
     let spacersInserted = 0;
-
-    // Keep track of which page boundary we're looking for
     let nextPageBreak = EFFECTIVE_CONTENT_AREA; // First break at 900px
 
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-      const bounds = getContentOnlyBounds(child, containerTop, spacersInserted);
+    for (const child of children) {
+      const contentOnlyTop = getContentOnlyTop(child, containerTop, spacersInserted);
 
-      // Check if this element's bottom would overflow the current page
-      // (i.e., bottom > nextPageBreak means it extends into footer zone)
-      if (bounds.bottom > nextPageBreak && bounds.top < nextPageBreak) {
-        // Element straddles the page boundary - insert spacer before it
+      // Check if this element's top has crossed into the next page's territory
+      // Insert spacer when content-only top >= page boundary
+      while (contentOnlyTop >= nextPageBreak) {
         const spacer = document.createElement('div');
         spacer.className = 'bionic-page-spacer';
         spacer.style.height = `${VISUAL_SPACER_HEIGHT}px`;
@@ -93,29 +88,7 @@
 
         child.parentNode?.insertBefore(spacer, child);
         spacersInserted++;
-
-        // Move to next page boundary
         nextPageBreak += EFFECTIVE_CONTENT_AREA;
-
-        // Re-check this same element in case it still overflows
-        i--;
-      } else if (bounds.top >= nextPageBreak) {
-        // Element starts on or after the next page - insert spacer before it
-        const spacer = document.createElement('div');
-        spacer.className = 'bionic-page-spacer';
-        spacer.style.height = `${VISUAL_SPACER_HEIGHT}px`;
-        spacer.style.width = '100%';
-        spacer.setAttribute('aria-hidden', 'true');
-        spacer.dataset.breakNum = String(spacersInserted + 1);
-
-        child.parentNode?.insertBefore(spacer, child);
-        spacersInserted++;
-
-        // Move to next page boundary
-        nextPageBreak += EFFECTIVE_CONTENT_AREA;
-
-        // Re-check this same element
-        i--;
       }
     }
   }
