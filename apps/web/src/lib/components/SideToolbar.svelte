@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { bionicState } from '$lib/state/bionic.svelte';
+
   interface Props {
     hasSelection?: boolean;
     bionicReadingActive?: boolean;
@@ -19,6 +21,17 @@
 
   // Dropdown state
   let showReadingMenu = $state(false);
+
+  // Intensity options
+  const intensityOptions: { value: 'low' | 'medium' | 'high'; label: string; desc: string }[] = [
+    { value: 'low', label: 'Low', desc: 'Subtle emphasis' },
+    { value: 'medium', label: 'Medium', desc: 'Balanced reading' },
+    { value: 'high', label: 'High', desc: 'Maximum emphasis' },
+  ];
+
+  function handleIntensityClick(intensity: 'low' | 'medium' | 'high'): void {
+    bionicState.setIntensity(intensity);
+  }
 
   function handleReadingButtonClick(): void {
     showReadingMenu = !showReadingMenu;
@@ -165,9 +178,35 @@
                 <span class="active-badge">On</span>
               {/if}
             </span>
-            <span class="dropdown-desc">Bold word beginnings for faster reading</span>
+            <span class="dropdown-desc">
+              {#if bionicReadingActive}
+                Click to turn off
+              {:else}
+                Bold word beginnings for faster reading
+              {/if}
+            </span>
           </span>
         </button>
+
+        {#if bionicReadingActive}
+          <div class="dropdown-divider"></div>
+          <div class="intensity-section">
+            <span class="intensity-label">Intensity</span>
+            <div class="intensity-options">
+              {#each intensityOptions as option}
+                <button
+                  class="intensity-button"
+                  class:active={bionicState.intensity === option.value}
+                  onclick={() => handleIntensityClick(option.value)}
+                  role="menuitem"
+                  title={option.desc}
+                >
+                  {option.label}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
@@ -321,5 +360,59 @@
     color: white;
     border-radius: 4px;
     text-transform: uppercase;
+  }
+
+  /* Dropdown divider */
+  .dropdown-divider {
+    height: 1px;
+    background-color: var(--glow-border-default);
+    margin: 8px 0;
+  }
+
+  /* Intensity section */
+  .intensity-section {
+    padding: 8px 12px;
+  }
+
+  .intensity-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--glow-text-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .intensity-options {
+    display: flex;
+    gap: 6px;
+  }
+
+  .intensity-button {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--glow-border-default);
+    background-color: transparent;
+    color: var(--glow-text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .intensity-button:hover {
+    background-color: var(--glow-bg-elevated);
+    color: var(--glow-text-primary);
+  }
+
+  .intensity-button.active {
+    background-color: var(--glow-accent-primary);
+    border-color: var(--glow-accent-primary);
+    color: white;
   }
 </style>

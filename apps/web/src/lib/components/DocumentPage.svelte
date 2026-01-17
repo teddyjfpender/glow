@@ -14,6 +14,7 @@
   import { ExcalidrawExtension } from '$lib/editor/extensions/excalidraw';
   import { CommentMark } from '$lib/editor/extensions/comment-mark';
   import { LatexExtension } from '$lib/editor/extensions/latex';
+  import { PageBreakSpacerExtension } from '$lib/editor/extensions/page-break-spacer';
   import Toolbar from './Toolbar.svelte';
   import { CommentCardsContainer } from '$lib/components/comments';
   import { documentState } from '$lib/state/document.svelte';
@@ -495,6 +496,7 @@
         }),
         CommentMark,
         LatexExtension,
+        PageBreakSpacerExtension,
       ],
       content: documentState.content,
       editorProps: {
@@ -567,6 +569,11 @@
           >
             <div class="editor" bind:this={editorElement}></div>
           </div>
+
+          <!-- Layer 2.5: Bionic Reading overlay (positioned over editor content) -->
+          {#if bionicState.isActive}
+            <BionicOverlay html={editorContent || editor?.getHTML() || ''} {pageCount} />
+          {/if}
 
           <!-- Layer 3: Page gaps (visual separator between pages) -->
           {#each Array(Math.max(0, pageCount - 1)) as _, gapIndex}
@@ -680,10 +687,6 @@
   />
 {/if}
 
-<!-- Bionic Reading (fullscreen overlay) -->
-{#if bionicState.isActive}
-  <BionicOverlay html={editorContent || editor?.getHTML() || ''} />
-{/if}
 
 <style>
   .document-container {
