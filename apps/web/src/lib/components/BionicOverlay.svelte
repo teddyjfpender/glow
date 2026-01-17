@@ -1,5 +1,12 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { bionicState, transformToBionic } from '$lib/state/bionic.svelte';
+  import {
+    PAGE_HEIGHT,
+    PAGE_GAP,
+    CONTENT_AREA_HEIGHT,
+    SPACER_HEIGHT,
+  } from '$lib/editor/utils/page-metrics';
 
   interface Props {
     html: string;
@@ -8,21 +15,122 @@
 
   const { html, pageCount }: Props = $props();
 
-  // Page dimensions (matching DocumentPage.svelte)
-  const PAGE_HEIGHT = 1056;
-  const PAGE_GAP = 40;
+  // Same constants as page-break-spacer plugin
+  const LINE_HEIGHT_BUFFER = 24;
+  const EFFECTIVE_CONTENT_AREA = CONTENT_AREA_HEIGHT - LINE_HEIGHT_BUFFER; // 900px
+  const VISUAL_SPACER_HEIGHT = SPACER_HEIGHT + LINE_HEIGHT_BUFFER; // 188px
 
   // Calculate total height to match pages container
   const totalHeight = $derived(pageCount * PAGE_HEIGHT + Math.max(0, pageCount - 1) * PAGE_GAP);
 
   // Transform the HTML to bionic format
   const bionicHtml = $derived(transformToBionic(html, bionicState.intensity));
+
+  // Reference to the content container
+  let contentRef = $state<HTMLDivElement | null>(null);
+
+  /**
+   * Get content-only Y position for an element (subtracting spacer heights)
+   */
+  function getContentOnlyTop(element: HTMLElement, containerTop: number, spacerCount: number): number {
+    const rect = element.getBoundingClientRect();
+    const actualTop = rect.top - containerTop;
+    return actualTop - spacerCount * VISUAL_SPACER_HEIGHT;
+  }
+
+  /**
+   * Insert spacer divs at page break positions
+   * Uses the same algorithm as page-break-spacer plugin:
+   * 1. Measure content in "content-only" coordinates (subtracting spacer heights)
+   * 2. Find elements whose top crosses page boundaries
+   * 3. Insert spacers before those elements
+   */
+  function insertPageBreakSpacers(): void {
+    if (!contentRef) return;
+
+    // Remove existing spacers first
+    const existingSpacers = contentRef.querySelectorAll('.bionic-page-spacer');
+    existingSpacers.forEach((spacer) => spacer.remove());
+
+    // Get all block-level children (excluding spacers)
+    const children = Array.from(contentRef.children).filter(
+      (el) => !el.classList.contains('bionic-page-spacer')
+    ) as HTMLElement[];
+
+    if (children.length === 0) return;
+
+    const containerRect = contentRef.getBoundingClientRect();
+    const containerTop = containerRect.top;
+
+    // Calculate total content height to determine number of breaks needed
+    const lastChild = children[children.length - 1];
+    const lastChildRect = lastChild.getBoundingClientRect();
+    const totalContentHeight = lastChildRect.bottom - containerTop;
+
+    // Number of page breaks needed
+    const numBreaks = Math.floor((totalContentHeight - 1) / EFFECTIVE_CONTENT_AREA);
+    if (numBreaks <= 0) return;
+
+    // For each page break, find the element to insert spacer before
+    let spacersInserted = 0;
+
+    for (let breakNum = 1; breakNum <= numBreaks; breakNum++) {
+      const targetY = breakNum * EFFECTIVE_CONTENT_AREA;
+
+      // Find the first element whose content-only top >= targetY
+      let insertBeforeElement: HTMLElement | null = null;
+
+      for (const child of children) {
+        // Skip elements we've already passed
+        const contentOnlyTop = getContentOnlyTop(child, containerTop, spacersInserted);
+
+        if (contentOnlyTop >= targetY) {
+          insertBeforeElement = child;
+          break;
+        }
+      }
+
+      if (insertBeforeElement) {
+        // Create and insert spacer
+        const spacer = document.createElement('div');
+        spacer.className = 'bionic-page-spacer';
+        spacer.style.height = `${VISUAL_SPACER_HEIGHT}px`;
+        spacer.style.width = '100%';
+        spacer.setAttribute('aria-hidden', 'true');
+        spacer.dataset.breakNum = String(breakNum);
+
+        insertBeforeElement.parentNode?.insertBefore(spacer, insertBeforeElement);
+        spacersInserted++;
+      }
+    }
+  }
+
+  // Insert spacers on mount and when content changes
+  onMount(() => {
+    // Small delay to ensure content is rendered
+    requestAnimationFrame(() => {
+      insertPageBreakSpacers();
+    });
+  });
+
+  // Re-insert spacers when bionic HTML changes
+  $effect(() => {
+    // Track bionicHtml to trigger on changes
+    void bionicHtml;
+
+    if (contentRef) {
+      // Use requestAnimationFrame to wait for DOM update
+      requestAnimationFrame(() => {
+        insertPageBreakSpacers();
+      });
+    }
+  });
 </script>
 
 <!-- In-document bionic reading overlay -->
 <div class="bionic-overlay" style="min-height: {totalHeight}px">
   <!-- eslint-disable-next-line svelte/no-at-html-tags -- Rendering bionic transformed content -->
-  <div class="bionic-content">{@html bionicHtml}</div>
+  <div class="bionic-content" bind:this={contentRef}>{@html bionicHtml}</div>
 </div>
 
 <style>
@@ -44,6 +152,13 @@
     font-size: 11pt;
     line-height: 1.5;
     color: var(--glow-text-primary);
+  }
+
+  /* Page break spacer - matches editor's spacer styling */
+  .bionic-content :global(.bionic-page-spacer) {
+    display: block;
+    pointer-events: none;
+    user-select: none;
   }
 
   /* Bionic bold styling */
