@@ -414,6 +414,131 @@ pre code {
   border-bottom-color: var(--glow-comment-underline-active);
 }
 
+/* ==================== Internal Document Links ==================== */
+
+/* Internal Link Mark Styles */
+.internal-link {
+  color: var(--glow-accent-primary);
+  text-decoration: none;
+  padding: 1px 4px;
+  margin: 0 1px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color var(--glow-transition-fast), color var(--glow-transition-fast);
+}
+
+.internal-link:hover {
+  background-color: rgba(99, 102, 241, 0.15);
+  text-decoration: underline;
+}
+
+.internal-link.resolved {
+  color: var(--glow-accent-primary);
+}
+
+.internal-link.unresolved {
+  color: var(--glow-text-secondary);
+  border-bottom: 1px dashed var(--glow-text-tertiary);
+  background-color: transparent;
+}
+
+.internal-link.unresolved:hover {
+  color: var(--glow-text-primary);
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+/* Link Palette Autocomplete Popup */
+.link-palette {
+  position: fixed;
+  width: 320px;
+  max-height: 400px;
+  background-color: var(--glow-bg-surface);
+  border: 1px solid var(--glow-border-default);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.3), 0 4px 8px rgb(0 0 0 / 0.2);
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.link-palette-search {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--glow-border-subtle);
+  color: var(--glow-text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.link-palette-search::placeholder {
+  color: var(--glow-text-tertiary);
+}
+
+.link-palette-results {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.link-palette-results li {
+  margin: 0;
+}
+
+.link-palette-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--glow-text-primary);
+  transition: background-color var(--glow-transition-fast);
+}
+
+.link-palette-item:hover,
+.link-palette-item.selected {
+  background-color: var(--glow-bg-elevated);
+}
+
+.link-palette-item-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.link-palette-item-preview {
+  font-size: 12px;
+  color: var(--glow-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-palette-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--glow-accent-primary);
+  border-top: 1px solid var(--glow-border-subtle);
+}
+
+.link-palette-create svg {
+  width: 14px;
+  height: 14px;
+}
+
+.link-palette-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--glow-text-tertiary);
+  font-size: 13px;
+}
+
 /* ==================== LaTeX Math Equations ==================== */
 
 /* Override KaTeX colors for dark mode */

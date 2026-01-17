@@ -15,7 +15,10 @@
   import { CommentMark } from '$lib/editor/extensions/comment-mark';
   import { LatexExtension } from '$lib/editor/extensions/latex';
   import { PageBreakSpacerExtension } from '$lib/editor/extensions/page-break-spacer';
+  import { InternalLinkMark } from '$lib/editor/extensions/internal-link';
+  import { createLinkAutocompletePlugin, type LinkAutocompleteState } from '$lib/editor/plugins/link-autocomplete';
   import Toolbar from './Toolbar.svelte';
+  import LinkPalette from './LinkPalette.svelte';
   import { CommentCardsContainer } from '$lib/components/comments';
   import { documentState } from '$lib/state/document.svelte';
   import { commentsState } from '$lib/state/comments.svelte';
@@ -38,6 +41,8 @@
   } from '$lib/editor/utils/page-metrics';
   import TabsPanel from './TabsPanel.svelte';
   import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
+  import { documentsState } from '$lib/state/documents.svelte';
 
   interface Props {
     onEditorReady?: (editor: Editor) => void;
@@ -84,6 +89,18 @@
 
   // Track the previous active tab ID to detect tab switches
   let previousActiveTabId = $state<string | null>(null);
+
+  // Link palette state for autocomplete popup
+  let linkPaletteState = $state<{
+    active: boolean;
+    query: string;
+    from: number;
+    to: number;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  // Store palette control methods (set by LinkPalette via onReady callback)
+  let linkPaletteControls: { selectCurrent: () => void; moveUp: () => void; moveDown: () => void } | null = null;
 
   // Actual content area height per page (page height minus header and footer)
   const CONTENT_AREA_HEIGHT = PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT; // 924px
@@ -301,6 +318,113 @@
     bionicState.toggle();
   }
 
+  // Internal link handlers
+  function handleEditorClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    const linkElement = target.closest('span[data-internal-link]') as HTMLElement | null;
+
+    if (linkElement) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const documentId = linkElement.getAttribute('data-document-id') || null;
+      const title = linkElement.getAttribute('data-title') || '';
+
+      handleInternalLinkClick(documentId, title);
+    }
+  }
+
+  function handleInternalLinkClick(documentId: string | null, title: string): void {
+    if (documentId) {
+      // Navigate to the linked document
+      window.location.href = `/doc/${documentId}`;
+    } else {
+      // Create new document with this title
+      handleLinkCreateNew(title);
+    }
+  }
+
+  function handleInternalLinkHover(
+    _documentId: string | null,
+    _title: string,
+    _rect: DOMRect
+  ): void {
+    // TODO: Show link preview popup
+    // For now, this is a placeholder for future link preview functionality
+  }
+
+  function handleLinkPaletteSelect(documentId: string, title: string): void {
+    if (!editor || !linkPaletteState) return;
+
+    const { from, to } = linkPaletteState;
+
+    // Delete the [[query text and insert the link
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from, to })
+      .insertContent({
+        type: 'text',
+        text: title,
+        marks: [
+          {
+            type: 'internalLink',
+            attrs: {
+              documentId,
+              title,
+              displayText: null,
+              anchor: null,
+              resolved: true,
+            },
+          },
+        ],
+      })
+      .run();
+
+    linkPaletteState = null;
+  }
+
+  function handleLinkCreateNew(title: string): void {
+    if (!editor || !linkPaletteState) return;
+
+    const { from, to } = linkPaletteState;
+
+    // Create the new document
+    void documentsState.create(title).then((newDoc) => {
+      if (!newDoc || !editor) return;
+
+      // Delete the [[query text and insert the link to the new document
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContent({
+          type: 'text',
+          text: title,
+          marks: [
+            {
+              type: 'internalLink',
+              attrs: {
+                documentId: newDoc.id,
+                title,
+                displayText: null,
+                anchor: null,
+                resolved: true,
+              },
+            },
+          ],
+        })
+        .run();
+    });
+
+    linkPaletteState = null;
+  }
+
+  function handleLinkPaletteClose(): void {
+    linkPaletteState = null;
+    linkPaletteControls = null;
+  }
+
   // State for new comment creation (floating card input)
   let newCommentState: { from: number; to: number; quotedText: string; top: number } | null =
     $state(null);
@@ -515,6 +639,9 @@
   }
 
   onMount(() => {
+    // Load documents list for internal link autocomplete
+    void documentsState.load();
+
     editor = new Editor({
       element: editorElement,
       extensions: [
@@ -549,11 +676,47 @@
         CommentMark,
         LatexExtension,
         PageBreakSpacerExtension,
+        InternalLinkMark.configure({
+          onLinkClick: handleInternalLinkClick,
+          onLinkHover: handleInternalLinkHover,
+        }),
       ],
       content: documentState.content,
       editorProps: {
         attributes: {
           class: 'document-content',
+        },
+        handleKeyDown: (_view, event) => {
+          // Handle keyboard events when link autocomplete is active
+          if (!linkPaletteState?.active) {
+            return false;
+          }
+
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            linkPaletteControls?.selectCurrent();
+            return true;
+          }
+
+          if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            linkPaletteControls?.moveUp();
+            return true;
+          }
+
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            linkPaletteControls?.moveDown();
+            return true;
+          }
+
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            handleLinkPaletteClose();
+            return true;
+          }
+
+          return false;
         },
       },
       onUpdate: ({ editor: e }) => {
@@ -565,8 +728,29 @@
     lastSyncedContent = documentState.content;
     onEditorReady?.(editor);
 
+    // Register link autocomplete plugin
+    const linkAutocompletePlugin = createLinkAutocompletePlugin(
+      (state: LinkAutocompleteState, coords: { x: number; y: number }) => {
+        linkPaletteState = {
+          active: state.active,
+          query: state.query,
+          from: state.from,
+          to: state.to,
+          position: coords,
+        };
+      },
+      () => {
+        linkPaletteState = null;
+        linkPaletteControls = null;
+      }
+    );
+    editor.registerPlugin(linkAutocompletePlugin);
+
     // Listen for comment creation events from toolbar
     editorElement.addEventListener('glow:create-comment', handleCreateCommentEvent);
+
+    // Listen for internal link clicks
+    editorElement.addEventListener('click', handleEditorClick);
 
     // Listen for scroll-to-heading events from outline
     document.addEventListener('glow:scroll-to-heading', handleScrollToHeading);
@@ -574,6 +758,7 @@
 
   onDestroy(() => {
     editorElement?.removeEventListener('glow:create-comment', handleCreateCommentEvent);
+    editorElement?.removeEventListener('click', handleEditorClick);
     document.removeEventListener('glow:scroll-to-heading', handleScrollToHeading);
     editor?.destroy();
   });
@@ -795,6 +980,17 @@
   />
 {/if}
 
+<!-- Link Autocomplete Palette -->
+{#if linkPaletteState?.active}
+  <LinkPalette
+    position={linkPaletteState.position}
+    query={linkPaletteState.query}
+    onSelect={handleLinkPaletteSelect}
+    onCreateNew={handleLinkCreateNew}
+    onClose={handleLinkPaletteClose}
+    onReady={(controls) => { linkPaletteControls = controls; }}
+  />
+{/if}
 
 <style>
   .document-container {
