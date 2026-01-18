@@ -5,117 +5,13 @@
  * Following TDD methodology: write tests first, then implement.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-
-// Types
-interface DocumentLink {
-  sourceId: string;
-  targetId: string;
-  targetTitle: string;
-  context: string; // Text around the link
-  position: number; // Character position in document
-}
-
-interface BacklinkResult {
-  documentId: string;
-  documentTitle: string;
-  context: string;
-  position: number;
-}
-
-interface UnlinkedMention {
-  documentId: string;
-  documentTitle: string;
-  mentionText: string;
-  context: string;
-  position: number;
-}
-
-interface LinkParseResult {
-  links: {
-    title: string;
-    start: number;
-    end: number;
-  }[];
-  cleanContent: string;
-}
-
-// Placeholder class - tests will fail until implemented
-class BacklinkIndex {
-  private outgoing = new Map<string, Set<string>>();
-  private incoming = new Map<string, Set<string>>();
-  private titleToId = new Map<string, string>();
-  private links: DocumentLink[] = [];
-
-  addDocument(_id: string, _title: string, _content: string): void {
-    throw new Error('Not implemented');
-  }
-
-  updateDocument(_id: string, _title: string, _content: string): void {
-    throw new Error('Not implemented');
-  }
-
-  removeDocument(_id: string): void {
-    throw new Error('Not implemented');
-  }
-
-  getBacklinks(_documentId: string): BacklinkResult[] {
-    throw new Error('Not implemented');
-  }
-
-  getOutgoingLinks(_documentId: string): DocumentLink[] {
-    throw new Error('Not implemented');
-  }
-
-  getUnlinkedMentions(_documentTitle: string): UnlinkedMention[] {
-    throw new Error('Not implemented');
-  }
-
-  resolveLink(_linkText: string): string | null {
-    throw new Error('Not implemented');
-  }
-
-  getOrphanDocuments(): string[] {
-    throw new Error('Not implemented');
-  }
-
-  getMostLinkedDocuments(_limit?: number): { id: string; count: number }[] {
-    throw new Error('Not implemented');
-  }
-
-  clear(): void {
-    throw new Error('Not implemented');
-  }
-
-  get documentCount(): number {
-    return this.titleToId.size;
-  }
-
-  get linkCount(): number {
-    return this.links.length;
-  }
-}
-
-class LinkParser {
-  parse(_content: string): LinkParseResult {
-    throw new Error('Not implemented');
-  }
-
-  extractLinks(_content: string): { title: string; start: number; end: number }[] {
-    throw new Error('Not implemented');
-  }
-
-  renderLink(_title: string, _resolved: boolean): string {
-    throw new Error('Not implemented');
-  }
-
-  createLink(_title: string): string {
-    throw new Error('Not implemented');
-  }
-
-  isValidLinkSyntax(_text: string): boolean {
-    throw new Error('Not implemented');
-  }
-}
+import { LinkParser } from '../link-parser';
+import {
+  BacklinkIndex,
+  type DocumentLink,
+  type BacklinkResult,
+  type UnlinkedMention,
+} from '../backlink-index';
 
 describe('BacklinkIndex', () => {
   let index: BacklinkIndex;

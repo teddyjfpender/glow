@@ -6,6 +6,7 @@
 
 import { getDocument, saveDocument, type StoredDocument } from '$lib/storage/db';
 import { tabsState } from '$lib/state/tabs.svelte';
+import { backlinksState } from '$lib/state/backlinks.svelte';
 import type { Tab, TabsData } from '$lib/types/tabs';
 
 // Legacy interface for migration
@@ -184,6 +185,16 @@ function createDocumentState(): {
         id: state.id,
         title: state.title,
         content: contentToSave,
+      });
+
+      // Update backlinks index with the saved document
+      backlinksState.indexDocument({
+        id: state.id,
+        title: state.title,
+        content: contentToSave,
+        createdAt: '',
+        modifiedAt: new Date().toISOString(),
+        previewText: '',
       });
 
       state.isDirty = false;

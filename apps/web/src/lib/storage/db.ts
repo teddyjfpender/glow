@@ -6,9 +6,10 @@
 import { browser } from '$app/environment';
 
 export const DB_NAME = 'glow-docs';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 const STORE_NAME = 'documents';
 export const COMMENTS_STORE_NAME = 'comments';
+export const BACKLINKS_STORE_NAME = 'backlinks';
 
 export interface StoredDocument {
   id: string;
@@ -57,6 +58,11 @@ export function openDB(): Promise<IDBDatabase> {
         commentsStore.createIndex('documentId', 'documentId', { unique: false });
         commentsStore.createIndex('resolved', 'resolved', { unique: false });
         commentsStore.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+
+      // Create backlinks store (version 3)
+      if (!db.objectStoreNames.contains(BACKLINKS_STORE_NAME)) {
+        db.createObjectStore(BACKLINKS_STORE_NAME, { keyPath: 'key' });
       }
     };
   });

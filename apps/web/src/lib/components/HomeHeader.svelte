@@ -2,11 +2,15 @@
   import { resolve } from '$app/paths';
   import { documentsState } from '$lib/state/documents.svelte';
 
+  export type ViewMode = 'docs' | 'graph';
+
   interface Props {
     onSearch?: (query: string) => void;
+    viewMode?: ViewMode;
+    onViewModeChange?: (mode: ViewMode) => void;
   }
 
-  const { onSearch }: Props = $props();
+  const { onSearch, viewMode = 'docs', onViewModeChange }: Props = $props();
 
   let searchQuery = $state('');
 
@@ -56,13 +60,38 @@
     </div>
 
     <div class="header-actions">
-      <a href={resolve('/docs')} class="docs-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
-        Docs
-      </a>
+      <div class="view-toggle">
+        <button
+          class="view-toggle-btn"
+          class:active={viewMode === 'docs'}
+          onclick={() => onViewModeChange?.('docs')}
+          title="Document view"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          Docs
+        </button>
+        <button
+          class="view-toggle-btn"
+          class:active={viewMode === 'graph'}
+          onclick={() => onViewModeChange?.('graph')}
+          title="Graph view"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="6" cy="6" r="3" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="18" r="3" />
+            <line x1="8.5" y1="7.5" x2="15.5" y2="16.5" />
+            <line x1="15.5" y1="7.5" x2="8.5" y2="16.5" />
+          </svg>
+          Graph
+        </button>
+      </div>
       <button class="new-doc-btn" onclick={handleNewDocument}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14M5 12h14" />
@@ -160,27 +189,41 @@
     gap: 12px;
   }
 
-  .docs-link {
+  .view-toggle {
+    display: flex;
+    background-color: var(--glow-bg-elevated);
+    border-radius: 8px;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .view-toggle-btn {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 10px 16px;
-    color: var(--glow-text-secondary);
-    text-decoration: none;
+    padding: 8px 14px;
+    color: var(--glow-text-tertiary);
+    background: transparent;
+    border: none;
     font-size: 14px;
     font-weight: 500;
     border-radius: 6px;
+    cursor: pointer;
     transition: color 0.2s, background-color 0.2s;
   }
 
-  .docs-link svg {
-    width: 18px;
-    height: 18px;
+  .view-toggle-btn svg {
+    width: 16px;
+    height: 16px;
   }
 
-  .docs-link:hover {
+  .view-toggle-btn:hover {
+    color: var(--glow-text-secondary);
+  }
+
+  .view-toggle-btn.active {
     color: var(--glow-text-primary);
-    background-color: var(--glow-bg-elevated);
+    background-color: var(--glow-bg-surface);
   }
 
   .new-doc-btn {

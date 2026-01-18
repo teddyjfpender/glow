@@ -3,9 +3,21 @@
   import { resolve } from '$app/paths';
   import HomeHeader from '$lib/components/HomeHeader.svelte';
   import DocumentCard from '$lib/components/DocumentCard.svelte';
+  import DocumentGraph from '$lib/components/DocumentGraph.svelte';
   import { documentsState } from '$lib/state/documents.svelte';
 
+  type ViewMode = 'docs' | 'graph';
+
   let searchQuery = $state('');
+  let viewMode = $state<ViewMode>('docs');
+
+  function handleViewModeChange(mode: ViewMode): void {
+    viewMode = mode;
+  }
+
+  function handleNodeClick(documentId: string): void {
+    window.location.href = resolve(`/doc/${documentId}`);
+  }
 
   // Filter documents based on search query
   const filteredDocuments = $derived(() => {
@@ -35,89 +47,101 @@
 </script>
 
 <div class="home">
-  <HomeHeader onSearch={handleSearch} />
+  <HomeHeader
+    onSearch={handleSearch}
+    {viewMode}
+    onViewModeChange={handleViewModeChange}
+  />
 
   <main class="home-content">
-    <div class="content-wrapper">
-      <!-- Start a new document section -->
-      <section class="section">
-        <h2 class="section-title">Start a new document</h2>
-        <div class="template-grid">
-          <button class="template-card" onclick={handleCreateDocument}>
-            <div class="template-preview">
-              <svg viewBox="0 0 24 24" class="blank-icon">
+    {#if viewMode === 'graph'}
+      <!-- Graph view -->
+      <div class="graph-view">
+        <DocumentGraph onNodeClick={handleNodeClick} />
+      </div>
+    {:else}
+      <!-- Docs view -->
+      <div class="content-wrapper">
+        <!-- Start a new document section -->
+        <section class="section">
+          <h2 class="section-title">Start a new document</h2>
+          <div class="template-grid">
+            <button class="template-card" onclick={handleCreateDocument}>
+              <div class="template-preview">
+                <svg viewBox="0 0 24 24" class="blank-icon">
+                  <path
+                    d="M12 5v14M5 12h14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <span class="template-label">Blank</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Recent documents section -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              {#if searchQuery.trim()}
+                Search results ({filteredDocuments().length})
+              {:else}
+                Recent documents
+              {/if}
+            </h2>
+          </div>
+
+          {#if documentsState.isLoading}
+            <div class="loading">
+              <div class="loading-spinner"></div>
+              <span>Loading documents...</span>
+            </div>
+          {:else if documentsState.error}
+            <div class="error">
+              <p>{documentsState.error}</p>
+            </div>
+          {:else if documentsState.documents.length === 0}
+            <div class="empty">
+              <svg viewBox="0 0 24 24" class="empty-icon">
                 <path
-                  d="M12 5v14M5 12h14"
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                  fill="none"
                   stroke="currentColor"
                   stroke-width="2"
-                  stroke-linecap="round"
+                />
+                <polyline
+                  points="14 2 14 8 20 8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
                 />
               </svg>
+              <h3>No documents yet</h3>
+              <p>Create your first document to get started</p>
+              <button class="create-btn" onclick={handleCreateDocument}> Create document </button>
             </div>
-            <span class="template-label">Blank</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- Recent documents section -->
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">
-            {#if searchQuery.trim()}
-              Search results ({filteredDocuments().length})
-            {:else}
-              Recent documents
-            {/if}
-          </h2>
-        </div>
-
-        {#if documentsState.isLoading}
-          <div class="loading">
-            <div class="loading-spinner"></div>
-            <span>Loading documents...</span>
-          </div>
-        {:else if documentsState.error}
-          <div class="error">
-            <p>{documentsState.error}</p>
-          </div>
-        {:else if documentsState.documents.length === 0}
-          <div class="empty">
-            <svg viewBox="0 0 24 24" class="empty-icon">
-              <path
-                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <polyline
-                points="14 2 14 8 20 8"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-            </svg>
-            <h3>No documents yet</h3>
-            <p>Create your first document to get started</p>
-            <button class="create-btn" onclick={handleCreateDocument}> Create document </button>
-          </div>
-        {:else if filteredDocuments().length === 0}
-          <div class="empty">
-            <svg viewBox="0 0 24 24" class="empty-icon">
-              <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2" />
-              <path d="M21 21l-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" />
-            </svg>
-            <h3>No results found</h3>
-            <p>No documents match "{searchQuery}"</p>
-          </div>
-        {:else}
-          <div class="documents-grid">
-            {#each filteredDocuments() as doc (doc.id)}
-              <DocumentCard document={doc} />
-            {/each}
-          </div>
-        {/if}
-      </section>
-    </div>
+          {:else if filteredDocuments().length === 0}
+            <div class="empty">
+              <svg viewBox="0 0 24 24" class="empty-icon">
+                <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2" />
+                <path d="M21 21l-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" />
+              </svg>
+              <h3>No results found</h3>
+              <p>No documents match "{searchQuery}"</p>
+            </div>
+          {:else}
+            <div class="documents-grid">
+              {#each filteredDocuments() as doc (doc.id)}
+                <DocumentCard document={doc} />
+              {/each}
+            </div>
+          {/if}
+        </section>
+      </div>
+    {/if}
   </main>
 </div>
 
@@ -132,6 +156,13 @@
   .home-content {
     flex: 1;
     overflow-y: auto;
+  }
+
+  .graph-view {
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    box-sizing: border-box;
   }
 
   .content-wrapper {
