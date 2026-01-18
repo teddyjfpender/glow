@@ -3,12 +3,25 @@
   import MenuBar from './MenuBar.svelte';
   import { documentState } from '$lib/state/document.svelte';
   import { commentsState } from '$lib/state/comments.svelte';
+  import { aiFeedbackState } from '$lib/ai/feedback-state.svelte';
+  import BridgeStatusIndicator from './BridgeStatusIndicator.svelte';
+  import BridgeSetupModal from './BridgeSetupModal.svelte';
 
   interface Props {
     onMenuAction?: (action: string) => void;
   }
 
   const { onMenuAction }: Props = $props();
+
+  let isBridgeModalOpen = $state(false);
+
+  function openBridgeModal(): void {
+    isBridgeModalOpen = true;
+  }
+
+  function closeBridgeModal(): void {
+    isBridgeModalOpen = false;
+  }
 
   let isEditingTitle = $state(false);
   let editValue = $state('');
@@ -153,6 +166,9 @@
           </svg>
         </button>
 
+        <!-- AI Bridge Status -->
+        <BridgeStatusIndicator status={aiFeedbackState.bridgeStatus} onclick={openBridgeModal} />
+
         <!-- Share button -->
         <button class="share-button">
           <svg
@@ -183,6 +199,9 @@
     </div>
   </div>
 </header>
+
+<!-- Bridge Setup Modal -->
+<BridgeSetupModal isOpen={isBridgeModalOpen} onClose={closeBridgeModal} />
 
 <style>
   .header {

@@ -3,12 +3,7 @@
  * Handles communication with the local Glow Bridge server for AI feedback
  */
 
-import type {
-  FeedbackRequest,
-  FeedbackResponse,
-  StreamMessage,
-  SuggestedEdit,
-} from './types';
+import type { FeedbackRequest, FeedbackResponse, StreamMessage, SuggestedEdit } from './types';
 
 /** Default bridge server URL */
 const DEFAULT_BRIDGE_URL = 'http://localhost:3847';
@@ -55,6 +50,20 @@ export class AIFeedbackService {
 
   constructor(bridgeUrl: string = DEFAULT_BRIDGE_URL) {
     this.bridgeUrl = bridgeUrl;
+  }
+
+  /**
+   * Update the bridge URL.
+   */
+  setBridgeUrl(url: string): void {
+    this.bridgeUrl = url;
+  }
+
+  /**
+   * Get the current bridge URL.
+   */
+  getBridgeUrl(): string {
+    return this.bridgeUrl;
   }
 
   /**

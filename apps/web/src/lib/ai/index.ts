@@ -35,7 +35,22 @@ export type { StreamCallbacks, ExecutorStatus, HealthResponse } from './feedback
 export { AIFeedbackService, aiFeedbackService } from './feedback-service';
 
 // State
+export type { BridgeConnectionStatus } from './feedback-state.svelte';
 export { aiFeedbackState, addCommentWithAI } from './feedback-state.svelte';
+
+// Bridge configuration
+export type { Platform } from './bridge-config';
+export {
+  detectPlatform,
+  getPlatformDisplayName,
+  getDownloadUrl,
+  getDownloadFilename,
+  getInstallCommands,
+  getBuildFromSourceCommands,
+  DEFAULT_BRIDGE_URL,
+  GITHUB_REPO,
+  ALL_PLATFORMS,
+} from './bridge-config';
 
 // Edit utilities
 export { applyEdit, rejectEdit, applyAllEdits, rejectAllEdits } from './edit-utils';

@@ -3,6 +3,7 @@
  * Handles AI feedback requests and integrates with the comment system
  */
 
+import { browser } from '$app/environment';
 import type {
   AIMetadata,
   AIFeedbackStatus,
@@ -15,6 +16,9 @@ import { aiFeedbackService } from './feedback-service';
 import { commentsState } from '$lib/state/comments.svelte';
 import { documentState } from '$lib/state/document.svelte';
 import type { Comment, CommentId, Author } from '$lib/comments/types';
+import { DEFAULT_BRIDGE_URL, detectPlatform, type Platform } from './bridge-config';
+
+const BRIDGE_URL_STORAGE_KEY = 'glow-bridge-url';
 
 /** AI feedback for a specific comment */
 interface CommentAIFeedback {
@@ -34,6 +38,9 @@ interface CommentAIFeedback {
   cleanup: (() => void) | null;
 }
 
+/** Bridge connection status */
+export type BridgeConnectionStatus = 'unknown' | 'checking' | 'connected' | 'disconnected';
+
 /** Internal state */
 interface AIFeedbackStateData {
   /** Map of comment ID to AI feedback */
@@ -42,30 +49,77 @@ interface AIFeedbackStateData {
   bridgeConnected: boolean;
   /** Last bridge check time */
   lastBridgeCheck: number | null;
+  /** Bridge connection status (more detailed) */
+  bridgeStatus: BridgeConnectionStatus;
+  /** Configured bridge URL */
+  bridgeUrl: string;
+  /** Detected platform */
+  detectedPlatform: Platform;
 }
 
 function createAIFeedbackState() {
+  // Load bridge URL from localStorage if available
+  const storedBridgeUrl = browser ? localStorage.getItem(BRIDGE_URL_STORAGE_KEY) : null;
+
   let state = $state<AIFeedbackStateData>({
     feedbackByComment: new Map(),
     bridgeConnected: false,
     lastBridgeCheck: null,
+    bridgeStatus: 'unknown',
+    bridgeUrl: storedBridgeUrl || DEFAULT_BRIDGE_URL,
+    detectedPlatform: browser ? detectPlatform() : 'unknown',
   });
 
   // Derived values
   let hasPendingFeedback = $derived(
     Array.from(state.feedbackByComment.values()).some(
-      (f) => f.metadata.status === 'pending' || f.metadata.status === 'processing'
-    )
+      (f) => f.metadata.status === 'pending' || f.metadata.status === 'processing',
+    ),
   );
 
   /**
    * Check if the bridge server is available.
    */
   async function checkBridgeConnection(): Promise<boolean> {
+    state.bridgeStatus = 'checking';
+
+    // Update the service with the current URL
+    aiFeedbackService.setBridgeUrl(state.bridgeUrl);
+
     const connected = await aiFeedbackService.checkBridgeAvailable();
     state.bridgeConnected = connected;
+    state.bridgeStatus = connected ? 'connected' : 'disconnected';
     state.lastBridgeCheck = Date.now();
     return connected;
+  }
+
+  /**
+   * Set the bridge server URL.
+   */
+  function setBridgeUrl(url: string): void {
+    state.bridgeUrl = url;
+    state.bridgeStatus = 'unknown';
+    state.bridgeConnected = false;
+
+    // Persist to localStorage
+    if (browser) {
+      localStorage.setItem(BRIDGE_URL_STORAGE_KEY, url);
+    }
+
+    // Update the service
+    aiFeedbackService.setBridgeUrl(url);
+  }
+
+  /**
+   * Reset bridge URL to default.
+   */
+  function resetBridgeUrl(): void {
+    setBridgeUrl(DEFAULT_BRIDGE_URL);
+
+    // Remove from localStorage to use default
+    if (browser) {
+      localStorage.removeItem(BRIDGE_URL_STORAGE_KEY);
+    }
   }
 
   /**
@@ -96,7 +150,7 @@ function createAIFeedbackState() {
   async function processComment(
     comment: Comment,
     mention: MentionMatch,
-    author: Author
+    author: Author,
   ): Promise<void> {
     const commentId = comment.id;
 
@@ -129,7 +183,11 @@ function createAIFeedbackState() {
       const connected = await checkBridgeConnection();
       console.log('[AI Feedback] Bridge connected:', connected);
       if (!connected) {
-        updateFeedbackStatus(commentId, 'failed', 'Bridge server not available. Please run glow-bridge serve.');
+        updateFeedbackStatus(
+          commentId,
+          'failed',
+          'Bridge server not available. Please run glow-bridge serve.',
+        );
         return;
       }
     }
@@ -176,11 +234,7 @@ function createAIFeedbackState() {
   /**
    * Stream feedback results from the bridge.
    */
-  function streamFeedback(
-    commentId: CommentId,
-    feedbackId: string,
-    author: Author
-  ): void {
+  function streamFeedback(commentId: CommentId, feedbackId: string, author: Author): void {
     const cleanup = aiFeedbackService.streamFeedback(feedbackId, {
       onChunk: (content) => {
         appendContent(commentId, content);
@@ -217,7 +271,7 @@ function createAIFeedbackState() {
   function updateFeedbackStatus(
     commentId: CommentId,
     status: AIFeedbackStatus,
-    error?: string
+    error?: string,
   ): void {
     const feedback = state.feedbackByComment.get(commentId);
     if (!feedback) return;
@@ -282,10 +336,7 @@ function createAIFeedbackState() {
   /**
    * Finish feedback and add reply to comment.
    */
-  async function finishFeedback(
-    commentId: CommentId,
-    author: Author
-  ): Promise<void> {
+  async function finishFeedback(commentId: CommentId, author: Author): Promise<void> {
     const feedback = state.feedbackByComment.get(commentId);
     if (!feedback) return;
 
@@ -351,7 +402,7 @@ function createAIFeedbackState() {
     newMap.set(commentId, {
       ...feedback,
       suggestedEdits: feedback.suggestedEdits.map((edit) =>
-        edit.id === editId ? { ...edit, applied: true } : edit
+        edit.id === editId ? { ...edit, applied: true } : edit,
       ),
     });
     state.feedbackByComment = newMap;
@@ -368,7 +419,7 @@ function createAIFeedbackState() {
     newMap.set(commentId, {
       ...feedback,
       suggestedEdits: feedback.suggestedEdits.map((edit) =>
-        edit.id === editId ? { ...edit, rejected: true } : edit
+        edit.id === editId ? { ...edit, rejected: true } : edit,
       ),
     });
     state.feedbackByComment = newMap;
@@ -398,11 +449,25 @@ function createAIFeedbackState() {
     get bridgeConnected() {
       return state.bridgeConnected;
     },
+    get bridgeStatus() {
+      return state.bridgeStatus;
+    },
+    get bridgeUrl() {
+      return state.bridgeUrl;
+    },
+    get detectedPlatform() {
+      return state.detectedPlatform;
+    },
+    get lastBridgeCheck() {
+      return state.lastBridgeCheck;
+    },
     get hasPendingFeedback() {
       return hasPendingFeedback;
     },
     // Actions
     checkBridgeConnection,
+    setBridgeUrl,
+    resetBridgeUrl,
     getFeedback,
     hasAIFeedback,
     getStatus,
@@ -422,7 +487,7 @@ export const aiFeedbackState = createAIFeedbackState();
  */
 export async function addCommentWithAI(
   payload: Parameters<typeof commentsState.addComment>[0],
-  author: Author
+  author: Author,
 ): Promise<Comment | null> {
   // Check for @mention
   const mention = detectMention(payload.content);
@@ -447,7 +512,7 @@ export async function addCommentWithAI(
   if (mention) {
     console.log('[AI Feedback] Processing @mention', {
       agent: mention.agentName,
-      instruction: mention.instruction
+      instruction: mention.instruction,
     });
     await aiFeedbackState.processComment(comment, mention, author);
   }
