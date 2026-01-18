@@ -6,6 +6,7 @@ export type Platform = 'macos-arm64' | 'macos-x64' | 'windows-x64' | 'linux-x64'
 
 export const DEFAULT_BRIDGE_URL = 'http://localhost:3847';
 export const GITHUB_REPO = 'teddyjfpender/glow';
+export const BRIDGE_RELEASE_TAG = 'bridge-latest';
 
 /**
  * Detect the user's platform for downloading the correct binary.
@@ -66,6 +67,7 @@ export function getPlatformDisplayName(platform: Platform): string {
 
 /**
  * Get the download URL for a specific platform.
+ * Uses the "bridge-latest" release which is auto-updated on every push to master.
  */
 export function getDownloadUrl(platform: Platform): string | null {
   if (platform === 'unknown') {
@@ -75,7 +77,7 @@ export function getDownloadUrl(platform: Platform): string | null {
   const filename =
     platform === 'windows-x64' ? `glow-bridge-${platform}.exe` : `glow-bridge-${platform}`;
 
-  return `https://github.com/${GITHUB_REPO}/releases/latest/download/${filename}`;
+  return `https://github.com/${GITHUB_REPO}/releases/download/${BRIDGE_RELEASE_TAG}/${filename}`;
 }
 
 /**

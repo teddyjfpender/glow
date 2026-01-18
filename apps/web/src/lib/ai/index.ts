@@ -49,6 +49,7 @@ export {
   getBuildFromSourceCommands,
   DEFAULT_BRIDGE_URL,
   GITHUB_REPO,
+  BRIDGE_RELEASE_TAG,
   ALL_PLATFORMS,
 } from './bridge-config';
 

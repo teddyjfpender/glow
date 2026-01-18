@@ -2,8 +2,18 @@ name: Release Bridge Server
 
 on:
   push:
+    branches: [master]
+    paths:
+      - 'crates/glow-bridge/**'
+      - 'crates/glow-executors/**'
+      - '.github/workflows/release-bridge.yml'
     tags:
       - 'bridge-v*'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'crates/glow-bridge/**'
+      - 'crates/glow-executors/**'
 
 env:
   CARGO_TERM_COLOR: always
@@ -63,9 +73,80 @@ jobs:
           path: ${{ matrix.artifact }}${{ runner.os == 'Windows' && '.exe' || '' }}
           if-no-files-found: error
 
-  release:
-    name: Create Release
+  # Always update the "latest" release on master pushes
+  release-latest:
+    name: Update Latest Release
     needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Delete existing latest release
+        run: gh release delete bridge-latest --yes || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete existing latest tag
+        run: git push origin :refs/tags/bridge-latest || true
+
+      - name: Create/Update Latest Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: bridge-latest
+          name: Bridge Server (Latest)
+          body: |
+            ## Glow Bridge Server - Latest Build
+
+            **Auto-updated on every push to master.**
+
+            Built from commit: ${{ github.sha }}
+
+            ### Download
+
+            | Platform | Download |
+            |----------|----------|
+            | macOS (Apple Silicon) | [glow-bridge-macos-arm64](https://github.com/${{ github.repository }}/releases/download/bridge-latest/glow-bridge-macos-arm64) |
+            | macOS (Intel) | [glow-bridge-macos-x64](https://github.com/${{ github.repository }}/releases/download/bridge-latest/glow-bridge-macos-x64) |
+            | Linux (x64) | [glow-bridge-linux-x64](https://github.com/${{ github.repository }}/releases/download/bridge-latest/glow-bridge-linux-x64) |
+            | Windows (x64) | [glow-bridge-windows-x64.exe](https://github.com/${{ github.repository }}/releases/download/bridge-latest/glow-bridge-windows-x64.exe) |
+
+            ### Quick Start
+
+            ```bash
+            # Download (macOS Apple Silicon example)
+            curl -L https://github.com/${{ github.repository }}/releases/download/bridge-latest/glow-bridge-macos-arm64 -o glow-bridge
+            chmod +x glow-bridge
+
+            # Run the server
+            ./glow-bridge serve
+            ```
+
+            The server will start on `http://localhost:3847`.
+          files: |
+            artifacts/glow-bridge-macos-arm64/glow-bridge-macos-arm64
+            artifacts/glow-bridge-macos-x64/glow-bridge-macos-x64
+            artifacts/glow-bridge-linux-x64/glow-bridge-linux-x64
+            artifacts/glow-bridge-windows-x64/glow-bridge-windows-x64.exe
+          draft: false
+          prerelease: true
+          make_latest: false
+
+  # Create versioned releases on tags
+  release-versioned:
+    name: Create Versioned Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/bridge-v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -85,7 +166,7 @@ jobs:
         with:
           name: Bridge Server ${{ github.ref_name }}
           body: |
-            ## Glow Bridge Server
+            ## Glow Bridge Server ${{ github.ref_name }}
 
             Pre-built binaries for the Glow Bridge server.
 
@@ -117,4 +198,5 @@ jobs:
             artifacts/glow-bridge-windows-x64/glow-bridge-windows-x64.exe
           draft: false
           prerelease: false
+          make_latest: true
           generate_release_notes: true
