@@ -5,8 +5,8 @@
 use glow_core::{Document, DocumentId};
 use serde::{Deserialize, Serialize};
 
-use crate::storage::SqliteStorage;
 use crate::Result;
+use crate::storage::SqliteStorage;
 
 /// Document response for the frontend.
 #[derive(Debug, Clone, Serialize, Deserialize)]

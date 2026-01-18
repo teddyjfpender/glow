@@ -2,6 +2,7 @@
   import type { Comment, Author, ReactionEmoji } from '$lib/comments/types';
   import { SvelteMap } from 'svelte/reactivity';
   import ReactionPicker from './ReactionPicker.svelte';
+  import { aiFeedbackState, detectMention, type SuggestedEdit } from '$lib/ai';
 
   interface Props {
     comment: Comment;
@@ -13,6 +14,8 @@
     onDelete?: () => void;
     onReply?: (content: string) => void;
     onReact?: (replyId: string | null, emoji: ReactionEmoji) => void;
+    onApplyEdit?: (edit: SuggestedEdit) => void;
+    onRejectEdit?: (edit: SuggestedEdit) => void;
   }
 
   const {
@@ -25,6 +28,8 @@
     onDelete,
     onReply,
     onReact,
+    onApplyEdit,
+    onRejectEdit,
   }: Props = $props();
 
   let showMenu = $state(false);
@@ -36,6 +41,52 @@
   const hasReplies = $derived(comment.replies.length > 0);
   const isOwnComment = $derived(comment.author.id === currentAuthor.id);
   const hasReplyContent = $derived(replyContent.trim().length > 0);
+
+  // AI feedback state
+  const aiFeedback = $derived(aiFeedbackState.getFeedback(comment.id));
+  const mentionMatch = $derived(detectMention(comment.content));
+  const isAIComment = $derived(mentionMatch !== null);
+  const aiStatus = $derived(aiFeedback?.metadata.status ?? null);
+  const suggestedEdits = $derived(aiFeedback?.suggestedEdits ?? []);
+  const pendingEdits = $derived(suggestedEdits.filter(e => !e.applied && !e.rejected));
+  const isAIWorking = $derived(aiStatus === 'pending' || aiStatus === 'processing');
+
+  // Get agent display name for the working indicator
+  const agentDisplayName = $derived.by(() => {
+    if (!mentionMatch) return 'AI';
+    const names: Record<string, string> = {
+      claude: 'Claude',
+      codex: 'Codex',
+      gemini: 'Gemini',
+      ai: 'AI'
+    };
+    return names[mentionMatch.agentName] || 'AI';
+  });
+
+  // Format content with highlighted @mention
+  const formattedContent = $derived.by(() => {
+    if (!isAIComment || !mentionMatch) {
+      // Escape HTML to prevent XSS
+      return escapeHtml(comment.content);
+    }
+    // Highlight the @mention
+    const mentionText = `@${mentionMatch.agentName}`;
+    const escapedContent = escapeHtml(comment.content);
+    const escapedMention = escapeHtml(mentionText);
+    return escapedContent.replace(
+      new RegExp(`(${escapedMention})`, 'i'),
+      '<span class="mention-highlight">$1</span>'
+    );
+  });
+
+  function escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   interface GroupedReaction {
     emoji: string;
@@ -293,7 +344,54 @@
       </div>
     </div>
 
-    <div class="content">{comment.content}</div>
+    <div class="content">{@html formattedContent}</div>
+
+    <!-- AI Error Status (only show when failed) -->
+    {#if isAIComment && aiStatus === 'failed'}
+      <div class="ai-status failed">
+        <span class="status-icon">!</span>
+        <span>AI feedback failed</span>
+        {#if aiFeedback?.metadata.error}
+          <span class="error-message">{aiFeedback.metadata.error}</span>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Suggested Edits -->
+    {#if pendingEdits.length > 0}
+      <div class="suggested-edits">
+        <div class="edits-header">
+          <span class="edits-title">Suggested Edits ({pendingEdits.length})</span>
+        </div>
+        {#each pendingEdits as edit (edit.id)}
+          <div class="edit-suggestion">
+            <div class="edit-diff">
+              <div class="diff-remove">{edit.originalText}</div>
+              <div class="diff-add">{edit.suggestedText}</div>
+            </div>
+            {#if edit.explanation}
+              <div class="edit-explanation">{edit.explanation}</div>
+            {/if}
+            <div class="edit-actions">
+              <button
+                type="button"
+                class="edit-btn apply"
+                onclick={() => onApplyEdit?.(edit)}
+              >
+                Apply
+              </button>
+              <button
+                type="button"
+                class="edit-btn reject"
+                onclick={() => onRejectEdit?.(edit)}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
 
     {#if groupedReactions.length > 0}
       <div class="reactions">
@@ -312,6 +410,30 @@
       </div>
     {/if}
   </div>
+
+  <!-- AI Working Indicator (shows as a typing reply) -->
+  {#if isAIWorking}
+    <div class="replies">
+      <div class="reply-item ai-working">
+        <div class="reply-header">
+          <div class="avatar small ai-avatar" title={agentDisplayName}>
+            <span class="initials">AI</span>
+          </div>
+          <div class="meta">
+            <span class="author-name">{agentDisplayName}</span>
+          </div>
+        </div>
+        <div class="reply-content typing-indicator">
+          <span class="typing-text">{agentDisplayName} is thinking</span>
+          <span class="typing-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Replies -->
   {#if hasReplies}
@@ -573,6 +695,14 @@
     word-break: break-word;
   }
 
+  .content :global(.mention-highlight) {
+    font-weight: 600;
+    color: var(--glow-accent-primary);
+    background-color: rgba(96, 165, 250, 0.15);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
   .reactions {
     display: flex;
     flex-wrap: wrap;
@@ -748,5 +878,191 @@
 
   .quick-reply-btn svg {
     transform: scaleX(-1);
+  }
+
+  /* AI Status Indicator (error only) */
+  .ai-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .ai-status.failed {
+    color: var(--glow-accent-error);
+    border: 1px solid var(--glow-accent-error);
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+
+  .status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--glow-accent-error);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .error-message {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-left: 4px;
+  }
+
+  /* Suggested Edits */
+  .suggested-edits {
+    margin-top: 12px;
+    border: 1px solid var(--glow-border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .edits-header {
+    padding: 8px 12px;
+    background-color: var(--glow-bg-elevated);
+    border-bottom: 1px solid var(--glow-border-subtle);
+  }
+
+  .edits-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--glow-text-secondary);
+  }
+
+  .edit-suggestion {
+    padding: 12px;
+    border-bottom: 1px solid var(--glow-border-subtle);
+  }
+
+  .edit-suggestion:last-child {
+    border-bottom: none;
+  }
+
+  .edit-diff {
+    font-family: var(--glow-font-mono, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .diff-remove {
+    padding: 6px 10px;
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    text-decoration: line-through;
+  }
+
+  .diff-add {
+    padding: 6px 10px;
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #86efac;
+  }
+
+  .edit-explanation {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--glow-text-tertiary);
+    font-style: italic;
+  }
+
+  .edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .edit-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .edit-btn.apply {
+    background-color: var(--glow-accent-success);
+    color: white;
+  }
+
+  .edit-btn.apply:hover {
+    background-color: #16a34a;
+  }
+
+  .edit-btn.reject {
+    background-color: var(--glow-bg-elevated);
+    color: var(--glow-text-secondary);
+    border: 1px solid var(--glow-border-default);
+  }
+
+  .edit-btn.reject:hover {
+    background-color: var(--glow-bg-base);
+  }
+
+  /* AI Working / Typing Indicator */
+  .ai-working {
+    background-color: rgba(96, 165, 250, 0.05);
+  }
+
+  .ai-avatar {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  }
+
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--glow-text-secondary);
+    font-style: italic;
+  }
+
+  .typing-text {
+    font-size: 13px;
+  }
+
+  .typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .typing-dots .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--glow-accent-primary);
+    animation: typing-bounce 1.4s ease-in-out infinite;
+  }
+
+  .typing-dots .dot:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .typing-dots .dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dots .dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
   }
 </style>

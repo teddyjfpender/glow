@@ -70,7 +70,7 @@
       value={content}
       oninput={handleInput}
       onkeydown={handleKeydown}
-      placeholder="Comment or add others with @"
+      placeholder="Comment or use @claude, @codex for AI feedback"
       rows="1"
       class="textarea"
     ></textarea>

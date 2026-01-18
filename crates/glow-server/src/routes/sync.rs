@@ -1,13 +1,13 @@
 //! WebSocket sync endpoints for real-time collaboration.
 
 use axum::{
+    Router,
     extract::{
-        ws::{Message, WebSocket},
         Path, State, WebSocketUpgrade,
+        ws::{Message, WebSocket},
     },
     response::Response,
     routing::get,
-    Router,
 };
 use glow_core::DocumentSync;
 use serde::{Deserialize, Serialize};

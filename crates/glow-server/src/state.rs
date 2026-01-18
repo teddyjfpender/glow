@@ -17,9 +17,7 @@ impl AppState {
     /// Creates a new application state.
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            documents: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self { documents: Arc::new(RwLock::new(HashMap::new())) }
     }
 }
 

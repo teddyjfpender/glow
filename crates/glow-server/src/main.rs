@@ -32,12 +32,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .nest("/api", routes::api_routes())
         .nest("/ws", routes::ws_routes())
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        )
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 

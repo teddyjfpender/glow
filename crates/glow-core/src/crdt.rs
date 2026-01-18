@@ -36,8 +36,7 @@ impl DocumentSync {
         let update = Update::decode_v1(state).map_err(|e| Error::Crdt(e.to_string()))?;
 
         let mut txn = doc.transact_mut();
-        txn.apply_update(update)
-            .map_err(|e| Error::Crdt(e.to_string()))?;
+        txn.apply_update(update).map_err(|e| Error::Crdt(e.to_string()))?;
         drop(txn);
 
         Ok(Self { doc })
@@ -111,8 +110,7 @@ impl DocumentSync {
         let update = Update::decode_v1(update).map_err(|e| Error::Crdt(e.to_string()))?;
 
         let mut txn = self.doc.transact_mut();
-        txn.apply_update(update)
-            .map_err(|e| Error::Crdt(e.to_string()))?;
+        txn.apply_update(update).map_err(|e| Error::Crdt(e.to_string()))?;
 
         Ok(())
     }

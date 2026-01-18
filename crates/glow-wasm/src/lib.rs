@@ -16,9 +16,7 @@ impl WasmDocumentSync {
     /// Creates a new document sync instance.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self {
-            inner: DocumentSync::new(),
-        }
+        Self { inner: DocumentSync::new() }
     }
 
     /// Creates a document sync from existing CRDT state.
@@ -71,9 +69,7 @@ impl WasmDocumentSync {
     /// Applies an update from a remote peer.
     #[wasm_bindgen(js_name = applyUpdate)]
     pub fn apply_update(&self, update: &[u8]) -> Result<(), JsError> {
-        self.inner
-            .apply_update(update)
-            .map_err(|e| JsError::new(&e.to_string()))
+        self.inner.apply_update(update).map_err(|e| JsError::new(&e.to_string()))
     }
 }
 

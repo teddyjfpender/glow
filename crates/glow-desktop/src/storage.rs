@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use glow_core::{Document, DocumentId, DocumentMetadata};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use uuid::Uuid;
 
 use crate::{Error, Result};
@@ -80,40 +80,23 @@ impl SqliteStorage {
                 let modified_at: String = row.get(5)?;
                 let version: u64 = row.get(6)?;
 
-                Ok((
-                    id_str,
-                    title,
-                    content,
-                    crdt_state,
-                    created_at,
-                    modified_at,
-                    version,
-                ))
+                Ok((id_str, title, content, crdt_state, created_at, modified_at, version))
             })?
             .filter_map(|r| r.ok())
-            .filter_map(
-                |(id_str, title, content, crdt_state, created_at, modified_at, version)| {
-                    let uuid = Uuid::parse_str(&id_str).ok()?;
-                    let created_at = DateTime::parse_from_rfc3339(&created_at)
-                        .ok()?
-                        .with_timezone(&Utc);
-                    let modified_at = DateTime::parse_from_rfc3339(&modified_at)
-                        .ok()?
-                        .with_timezone(&Utc);
+            .filter_map(|(id_str, title, content, crdt_state, created_at, modified_at, version)| {
+                let uuid = Uuid::parse_str(&id_str).ok()?;
+                let created_at =
+                    DateTime::parse_from_rfc3339(&created_at).ok()?.with_timezone(&Utc);
+                let modified_at =
+                    DateTime::parse_from_rfc3339(&modified_at).ok()?.with_timezone(&Utc);
 
-                    Some(Document {
-                        id: DocumentId::from_uuid(uuid),
-                        metadata: DocumentMetadata {
-                            title,
-                            created_at,
-                            modified_at,
-                            version,
-                        },
-                        content,
-                        crdt_state,
-                    })
-                },
-            )
+                Some(Document {
+                    id: DocumentId::from_uuid(uuid),
+                    metadata: DocumentMetadata { title, created_at, modified_at, version },
+                    content,
+                    crdt_state,
+                })
+            })
             .collect();
 
         Ok(docs)
@@ -141,15 +124,7 @@ impl SqliteStorage {
                 let modified_at: String = row.get(5)?;
                 let version: u64 = row.get(6)?;
 
-                Ok((
-                    id_str,
-                    title,
-                    content,
-                    crdt_state,
-                    created_at,
-                    modified_at,
-                    version,
-                ))
+                Ok((id_str, title, content, crdt_state, created_at, modified_at, version))
             })
             .optional()?;
 
@@ -166,12 +141,7 @@ impl SqliteStorage {
 
                 Ok(Document {
                     id: DocumentId::from_uuid(uuid),
-                    metadata: DocumentMetadata {
-                        title,
-                        created_at,
-                        modified_at,
-                        version,
-                    },
+                    metadata: DocumentMetadata { title, created_at, modified_at, version },
                     content,
                     crdt_state,
                 })
@@ -214,9 +184,7 @@ impl SqliteStorage {
     ///
     /// Returns an error if the delete fails.
     pub fn delete_document(&self, id: &DocumentId) -> Result<()> {
-        let rows = self
-            .conn
-            .execute("DELETE FROM documents WHERE id = ?", [id.to_string()])?;
+        let rows = self.conn.execute("DELETE FROM documents WHERE id = ?", [id.to_string()])?;
 
         if rows == 0 {
             return Err(Error::NotFound(id.to_string()));
@@ -269,9 +237,7 @@ mod tests {
         let doc = Document::with_title("To Delete");
         storage.save_document(&doc).expect("should save document");
 
-        storage
-            .delete_document(&doc.id)
-            .expect("should delete document");
+        storage.delete_document(&doc.id).expect("should delete document");
 
         let result = storage.get_document(&doc.id);
         assert!(result.is_err());

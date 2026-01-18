@@ -1,10 +1,10 @@
 //! Document CRUD endpoints.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     http::StatusCode,
     routing::get,
-    Json, Router,
 };
 use glow_core::{Document, DocumentId};
 use serde::{Deserialize, Serialize};
@@ -58,10 +58,7 @@ async fn get_document(
     let doc_id = DocumentId::from_uuid(uuid);
 
     let documents = state.documents.read().await;
-    documents
-        .get(&doc_id)
-        .map(|doc| Json(DocumentResponse::from(doc)))
-        .ok_or(StatusCode::NOT_FOUND)
+    documents.get(&doc_id).map(|doc| Json(DocumentResponse::from(doc))).ok_or(StatusCode::NOT_FOUND)
 }
 
 /// Create a new document.
@@ -120,20 +117,12 @@ async fn delete_document(
     let doc_id = DocumentId::from_uuid(uuid);
 
     let mut documents = state.documents.write().await;
-    documents
-        .remove(&doc_id)
-        .map(|_| StatusCode::NO_CONTENT)
-        .ok_or(StatusCode::NOT_FOUND)
+    documents.remove(&doc_id).map(|_| StatusCode::NO_CONTENT).ok_or(StatusCode::NOT_FOUND)
 }
 
 /// Creates document routes.
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/documents", get(list_documents).post(create_document))
-        .route(
-            "/documents/{id}",
-            get(get_document)
-                .put(update_document)
-                .delete(delete_document),
-        )
+        .route("/documents/{id}", get(get_document).put(update_document).delete(delete_document))
 }

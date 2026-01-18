@@ -24,6 +24,7 @@
   import { commentsState } from '$lib/state/comments.svelte';
   import { DrawingOverlay, drawingEditorState } from '$lib/editor/excalidraw';
   import { createDefaultAuthor, type ReactionEmoji, type Comment } from '$lib/comments/types';
+import { addCommentWithAI, aiFeedbackState, applyEdit, rejectEdit, type SuggestedEdit } from '$lib/ai';
   import SideToolbar from './SideToolbar.svelte';
   import RSVPReader from './rsvp/RSVPReader.svelte';
   import BionicOverlay from './BionicOverlay.svelte';
@@ -493,30 +494,33 @@
   });
 
   // Comment creation handler - creates comment and applies mark
+  // Uses addCommentWithAI to detect @mentions and trigger AI feedback
   function handleSubmitNewComment(content: string): void {
     const docId = documentState.id;
     if (!docId || !newCommentState) return;
 
     const { from, to, quotedText } = newCommentState;
 
-    void commentsState
-      .addComment({
+    // Use addCommentWithAI which handles @mention detection
+    void addCommentWithAI(
+      {
         documentId: docId,
         textRange: { from, to, quotedText },
         content,
         author: currentAuthor,
-      })
-      .then((comment) => {
-        if (comment && editor) {
-          // Select the text range and apply the comment mark
-          editor.commands.setTextSelection({ from, to });
-          editor.commands.setComment(comment.id);
-          editor.commands.setActiveComment(comment.id);
-          // Update positions to include new comment
-          updateCommentPositions();
-        }
-        newCommentState = null;
-      });
+      },
+      currentAuthor
+    ).then((comment) => {
+      if (comment && editor) {
+        // Select the text range and apply the comment mark
+        editor.commands.setTextSelection({ from, to });
+        editor.commands.setComment(comment.id);
+        editor.commands.setActiveComment(comment.id);
+        // Update positions to include new comment
+        updateCommentPositions();
+      }
+      newCommentState = null;
+    });
   }
 
   function handleCancelNewComment(): void {
@@ -613,6 +617,10 @@
   // Comment panel handlers
   function handleResolveComment(commentId: string): void {
     void commentsState.resolveComment(commentId, currentAuthor);
+    // Remove the highlight from the editor when resolved
+    if (editor) {
+      editor.commands.unsetComment(commentId);
+    }
   }
 
   function handleUnresolveComment(commentId: string): void {
@@ -636,6 +644,15 @@
 
   function handleReaction(commentId: string, _replyId: string | null, emoji: ReactionEmoji): void {
     void commentsState.addReaction(commentId, emoji, currentAuthor);
+  }
+
+  function handleApplyEdit(commentId: string, edit: SuggestedEdit): void {
+    if (!editor) return;
+    applyEdit(editor, commentId, edit);
+  }
+
+  function handleRejectEdit(commentId: string, edit: SuggestedEdit): void {
+    rejectEdit(commentId, edit);
   }
 
   onMount(() => {
@@ -941,6 +958,8 @@
             onDelete={handleDeleteComment}
             onReply={handleReplyToComment}
             onReact={handleReaction}
+            onApplyEdit={handleApplyEdit}
+            onRejectEdit={handleRejectEdit}
           />
         </div>
       </div>

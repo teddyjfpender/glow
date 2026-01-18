@@ -1,6 +1,6 @@
 //! Health check endpoints.
 
-use axum::{routing::get, Json, Router};
+use axum::{Json, Router, routing::get};
 use serde::Serialize;
 
 use crate::state::AppState;
@@ -14,10 +14,7 @@ struct HealthResponse {
 
 /// Health check handler.
 async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse {
-        status: "healthy",
-        version: env!("CARGO_PKG_VERSION"),
-    })
+    Json(HealthResponse { status: "healthy", version: env!("CARGO_PKG_VERSION") })
 }
 
 /// Creates health check routes.

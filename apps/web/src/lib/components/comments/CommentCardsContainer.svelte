@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Comment, Author, ReactionEmoji } from '$lib/comments/types';
+  import type { SuggestedEdit } from '$lib/ai';
   import CommentCard from './CommentCard.svelte';
   import CommentCardInput from './CommentCardInput.svelte';
 
@@ -33,6 +34,8 @@
     onDelete?: (commentId: string) => void;
     onReply?: (commentId: string, content: string) => void;
     onReact?: (commentId: string, replyId: string | null, emoji: ReactionEmoji) => void;
+    onApplyEdit?: (commentId: string, edit: SuggestedEdit) => void;
+    onRejectEdit?: (commentId: string, edit: SuggestedEdit) => void;
     onNewCommentSubmit?: (content: string) => void;
     onNewCommentCancel?: () => void;
   }
@@ -49,6 +52,8 @@
     onDelete,
     onReply,
     onReact,
+    onApplyEdit,
+    onRejectEdit,
     onNewCommentSubmit,
     onNewCommentCancel,
   }: Props = $props();
@@ -151,6 +156,12 @@
         onReply={onReply ? (content: string) => onReply(comment.id, content) : undefined}
         onReact={onReact
           ? (replyId: string | null, emoji: ReactionEmoji) => onReact(comment.id, replyId, emoji)
+          : undefined}
+        onApplyEdit={onApplyEdit
+          ? (edit: SuggestedEdit) => onApplyEdit(comment.id, edit)
+          : undefined}
+        onRejectEdit={onRejectEdit
+          ? (edit: SuggestedEdit) => onRejectEdit(comment.id, edit)
           : undefined}
       />
     </div>

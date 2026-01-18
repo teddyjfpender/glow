@@ -10,9 +10,7 @@ use crate::state::AppState;
 
 /// Creates the API routes.
 pub fn api_routes() -> Router<AppState> {
-    Router::new()
-        .merge(health::routes())
-        .merge(documents::routes())
+    Router::new().merge(health::routes()).merge(documents::routes())
 }
 
 /// Creates the WebSocket routes.

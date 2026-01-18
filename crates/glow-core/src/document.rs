@@ -61,12 +61,7 @@ impl DocumentMetadata {
     #[must_use]
     pub fn new(title: impl Into<String>) -> Self {
         let now = Utc::now();
-        Self {
-            title: title.into(),
-            created_at: now,
-            modified_at: now,
-            version: 1,
-        }
+        Self { title: title.into(), created_at: now, modified_at: now, version: 1 }
     }
 
     /// Updates the modified timestamp and increments version.

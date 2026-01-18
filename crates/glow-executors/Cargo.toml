@@ -1,0 +1,59 @@
+[package]
+name = "glow-executors"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "AI executor integrations for Glow - supports Claude Code, Codex, Gemini, and more"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Async runtime
+tokio.workspace = true
+tokio-util = { version = "0.7", features = ["io", "compat", "rt"] }
+tokio-stream = { version = "0.1", features = ["io-util"] }
+
+# Process management
+command-group = { version = "5.0", features = ["with-tokio"] }
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+toml = "0.8"
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Async trait
+async-trait = "0.1"
+
+# Enum utilities
+enum_dispatch = "0.3"
+strum = { version = "0.27", features = ["derive"] }
+strum_macros = "0.27"
+
+# Utils
+uuid.workspace = true
+chrono.workspace = true
+dirs = "5.0"
+regex = "1.11"
+bytes = "1.0"
+futures = "0.3"
+strip-ansi-escapes = "0.2"
+
+# Logging
+tracing.workspace = true
+
+# TypeScript bindings (for API types shared with frontend)
+ts-rs = { version = "10", features = ["serde-compat", "chrono-impl", "uuid-impl"] }
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile = "3"
+
+[features]
+default = []
+qa-mode = []
